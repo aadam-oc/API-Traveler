@@ -7,7 +7,7 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const swaggerJSDoc = require('swagger-jsdoc');
 const swaggerUi = require('swagger-ui-express');
-const bodyParser = require('body-parser'); // Asegura el parseo de JSON
+const bodyParser = require('body-parser');
 
 
 // Secret key for JWT
@@ -362,7 +362,7 @@ app.post('/traveler/register', async (req, res) => {
  *       500:
  *         description: Error interno del servidor
  */
-app.get('/traveler/usuarios', /*authenticateToken,*/ (req, res) => {
+app.get('/traveler/usuarios', /*authenticateToken,*/(req, res) => {
     db.query('SELECT * FROM traveler.usuarios', (err, results) => {
         if (err) {
             console.error('Error fetching users:', err);
@@ -401,6 +401,56 @@ app.post('/traveler/usuarios_full', (req, res) => {
     });
 });
 
+
+app.put('/traveler/usuarios_full/:id', (req, res) => {
+    const { id } = req.params;
+    const { correo, contrasena, id_rol, nombre, apellido1, apellido2, telefono1, telefono2 } = req.body;
+    db.query(` SELECT * FROM traveler.usuarios WHERE id_usuario = ?`, [id], (err, results) => {
+        if (err) {
+            console.error('Error fetching user:', err);
+            return res.status(500).json({ error: 'Error fetching user' });
+        }
+        if (results.length === 0) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        db.query(`UPDATE traveler.usuarios SET correo = ?, contrasena = ?, id_rol = ? WHERE id_usuario = ?`, [correo, contrasena, id_rol, id], (err) => {
+            if (err) {
+                console.error('Error updating user:', err);
+                return res.status(500).json({ error: 'Error updating user' });
+            }
+
+            db.query(`UPDATE traveler.caracteristicas_usuarios SET nombre = ?, apellido1 = ?, apellido2 = ?, telefono1 = ?, telefono2 = ? WHERE id_usuario = ?`, [nombre, apellido1, apellido2, telefono1, telefono2, id], (err) => {
+                if (err) {
+                    console.error('Error updating user characteristics:', err);
+                    return res.status(500).json({ error: 'Error updating user characteristics' });
+                }
+                res.status(200).json({ success: true });
+            });
+        });
+    });
+});
+
+
+
+app.get('/traveler/usuarios_full/:id', (req, res) => {
+    const { id } = req.params;
+    db.query(` SELECT u.*, r.nombre_rol, c.nombre, c.apellido1, c.apellido2, c.telefono1, c.telefono2
+        FROM traveler.usuarios u
+        LEFT JOIN traveler.roles r ON u.id_rol = r.id_rol
+        LEFT JOIN traveler.caracteristicas_usuarios c ON u.id_usuario = c.id_usuario
+        WHERE u.id_usuario = ?
+    `, [id], (err, results) => {
+        if (err) {
+            console.error('Error fetching user with roles and characteristics:', err);
+            return res.status(500).json({ error: 'Error fetching user with roles and characteristics' });
+        }
+        if (results.length === 0) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+        res.status(200).json({ usuario: results[0] });
+    });
+});
 
 
 
@@ -546,7 +596,7 @@ app.get('/traveler/usuarios_full', (req, res) => {
  *                   type: string
  *                   example: Error fetching user.
  */
-app.get('/traveler/usuarios/:id', /*authenticateToken,*/ (req, res) => {
+app.get('/traveler/usuarios/:id', /*authenticateToken,*/(req, res) => {
     const { id } = req.params;
     db.query('SELECT * FROM traveler.usuarios WHERE id_usuario = ?', [id], (err, results) => {
         if (err) {
@@ -620,7 +670,7 @@ app.get('/traveler/usuarios/:id', /*authenticateToken,*/ (req, res) => {
  *                   type: string
  *                   example: Error creating user.
  */
-app.post('/traveler/usuarios', /*authenticateToken,*/ (req, res) => {
+app.post('/traveler/usuarios', /*authenticateToken,*/(req, res) => {
     const { correo, contrasena, id_rol } = req.body;
 
     // Validate required fields
@@ -688,7 +738,7 @@ app.post('/traveler/usuarios', /*authenticateToken,*/ (req, res) => {
  *       500:
  *         description: Error interno del servidor
  */
-app.put('/traveler/usuarios/:id', /*authenticateToken,*/ (req, res) => {
+app.put('/traveler/usuarios/:id', /*authenticateToken,*/(req, res) => {
     const id = req.params.id;
     const { correo, contrasena, id_rol } = req.body;
 
@@ -777,7 +827,7 @@ app.put('/traveler/usuarios/:id', /*authenticateToken,*/ (req, res) => {
  *       500:
  *         description: Error interno del servidor
  */
-app.delete('/traveler/usuarios/:id', /*authenticateToken,*/ (req, res) => {
+app.delete('/traveler/usuarios/:id', /*authenticateToken,*/(req, res) => {
     const id = req.params.id;
 
     db.query('DELETE FROM traveler.usuarios WHERE id_usuario = ?', [id], (err, result) => {
@@ -830,7 +880,7 @@ app.delete('/traveler/usuarios/:id', /*authenticateToken,*/ (req, res) => {
  *       500:
  *         description: Error interno del servidor
  */
-app.get('/traveler/roles', /*authenticateToken,*/ (req, res) => {
+app.get('/traveler/roles', /*authenticateToken,*/(req, res) => {
     db.query('SELECT * FROM traveler.roles', (err, results) => {
         if (err) {
             console.error('Error fetching roles:', err);
@@ -880,7 +930,7 @@ app.get('/traveler/roles', /*authenticateToken,*/ (req, res) => {
  *       500:
  *         description: Error interno del servidor
  */
-app.get('/traveler/roles/:id', /*authenticateToken,*/ (req, res) => {
+app.get('/traveler/roles/:id', /*authenticateToken,*/(req, res) => {
     const id = req.params.id;
     console.log("Fetching role with ID:", id); // Log the ID to check if it's correct
 
@@ -935,7 +985,7 @@ app.get('/traveler/roles/:id', /*authenticateToken,*/ (req, res) => {
  *       500:
  *         description: Error interno del servidor
  */
-app.post('/traveler/roles', /*authenticateToken,*/ (req, res) => {
+app.post('/traveler/roles', /*authenticateToken,*/(req, res) => {
     const { nombre_rol } = req.body;
     console.log("Received role name:", nombre_rol);  // Log the received role name
 
@@ -991,7 +1041,7 @@ app.post('/traveler/roles', /*authenticateToken,*/ (req, res) => {
  *       500:
  *         description: Error interno del servidor
  */
-app.put('/traveler/roles/:id', /*authenticateToken,*/ (req, res) => {
+app.put('/traveler/roles/:id', /*authenticateToken,*/(req, res) => {
     const id = req.params.id;
     const { nombre_rol } = req.body;
     db.query('UPDATE traveler.roles SET nombre_rol = ? WHERE id_rol = ?', [nombre_rol, id], (err, result) => {
@@ -1029,7 +1079,7 @@ app.put('/traveler/roles/:id', /*authenticateToken,*/ (req, res) => {
  *       500:
  *         description: Error interno del servidor
  */
-app.delete('/traveler/roles/:id', /*authenticateToken,*/ (req, res) => {
+app.delete('/traveler/roles/:id', /*authenticateToken,*/(req, res) => {
     const id = req.params.id;
     db.query('DELETE FROM traveler.roles WHERE id_rol = ?', [id], (err, result) => {
         if (err) {
@@ -1090,7 +1140,7 @@ app.delete('/traveler/roles/:id', /*authenticateToken,*/ (req, res) => {
  *       500:
  *         description: Error interno del servidor
  */
-app.get('/traveler/caracteristicas_usuarios', /*authenticateToken,*/ (req, res) => {
+app.get('/traveler/caracteristicas_usuarios', /*authenticateToken,*/(req, res) => {
     db.query('SELECT * FROM traveler.caracteristicas_usuarios', (err, results) => {
         if (err) {
             console.error('Error fetching caracteristicas_usuarios:', err);
@@ -1152,7 +1202,7 @@ app.get('/traveler/caracteristicas_usuarios', /*authenticateToken,*/ (req, res) 
  *       500:
  *         description: Error interno del servidor
  */
-app.get('/traveler/caracteristicas_usuarios/:id', /*authenticateToken,*/ (req, res) => {
+app.get('/traveler/caracteristicas_usuarios/:id', /*authenticateToken,*/(req, res) => {
     const id_usuario = req.params.id;
     console.log("Fetching caracteristicas_usuarios with ID:", id_usuario); // Log the ID to check if it's correct
 
@@ -1222,7 +1272,7 @@ app.get('/traveler/caracteristicas_usuarios/:id', /*authenticateToken,*/ (req, r
  *       500:
  *         description: Error interno del servidor
  */
-app.post('/traveler/caracteristicas_usuarios', /*authenticateToken,*/ (req, res) => {
+app.post('/traveler/caracteristicas_usuarios', /*authenticateToken,*/(req, res) => {
     const { id_usuario, nombre, apellido1, apellido2, telefono1, telefono2 } = req.body;
 
     db.query(
@@ -1293,7 +1343,7 @@ app.post('/traveler/caracteristicas_usuarios', /*authenticateToken,*/ (req, res)
  *       500:
  *         description: Error interno del servidor
  */
-app.put('/traveler/caracteristicas_usuarios/:id', /*authenticateToken,*/ (req, res) => {
+app.put('/traveler/caracteristicas_usuarios/:id', /*authenticateToken,*/(req, res) => {
     const id_usuario = req.params.id;
     const { nombre, apellido1, apellido2, telefono1, telefono2 } = req.body;
     db.query(
@@ -1335,7 +1385,7 @@ app.put('/traveler/caracteristicas_usuarios/:id', /*authenticateToken,*/ (req, r
  *       500:
  *         description: Error interno del servidor
  */
-app.delete('/traveler/caracteristicas_usuarios/:id', /*authenticateToken,*/ (req, res) => {
+app.delete('/traveler/caracteristicas_usuarios/:id', /*authenticateToken,*/(req, res) => {
     const id_usuario = req.params.id;
     db.query('DELETE FROM traveler.caracteristicas_usuarios WHERE id_usuario = ?', [id_usuario], (err, result) => {
         if (err) {
@@ -1557,7 +1607,7 @@ app.post('/traveler/destinos', (req, res) => {
  *       401:
  *         description: Unauthorized access
  */
-app.put('/traveler/destinos/:id', /*authenticateToken,*/ (req, res) => {
+app.put('/traveler/destinos/:id', /*authenticateToken,*/(req, res) => {
     const id = req.params.id;
     const { pais, ciudad } = req.body;
     db.query('UPDATE traveler.destinos SET pais = ?, ciudad = ? WHERE id_destino = ?', [pais, ciudad, id], (err, result) => {
@@ -1601,7 +1651,7 @@ app.put('/traveler/destinos/:id', /*authenticateToken,*/ (req, res) => {
  *       401:
  *         description: Unauthorized access
  */
-app.delete('/traveler/destinos/:id', /*authenticateToken,*/ (req, res) => {
+app.delete('/traveler/destinos/:id', /*authenticateToken,*/(req, res) => {
     const id = req.params.id;
     db.query('DELETE FROM traveler.destinos WHERE id_destino = ?', [id], (err, result) => {
         if (err) {
@@ -1749,7 +1799,7 @@ app.get('/traveler/tipo_actividad/:id', /*authenticateToken,*/(req, res) => {
  *       500:
  *         description: Error creating tipo_actividad
  */
-app.post('/traveler/tipo_actividad', /*authenticateToken,*/ (req, res) => {
+app.post('/traveler/tipo_actividad', /*authenticateToken,*/(req, res) => {
     const { nombre_tipo_actividad } = req.body;
     db.query('INSERT INTO traveler.tipo_actividad (nombre_tipo_actividad) VALUES (?)', [nombre_tipo_actividad], (err, result) => {
         if (err) {
@@ -1793,7 +1843,7 @@ app.post('/traveler/tipo_actividad', /*authenticateToken,*/ (req, res) => {
  *       500:
  *         description: Error updating tipo_actividad
  */
-app.put('/traveler/tipo_actividad/:id', /*authenticateToken,*/ (req, res) => {
+app.put('/traveler/tipo_actividad/:id', /*authenticateToken,*/(req, res) => {
     const id = req.params.id;
     const { nombre_tipo_actividad } = req.body;
     db.query('UPDATE traveler.tipo_actividad SET nombre_tipo_actividad = ? WHERE id_tipo_actividad = ?', [nombre_tipo_actividad, id], (err, result) => {
@@ -1828,7 +1878,7 @@ app.put('/traveler/tipo_actividad/:id', /*authenticateToken,*/ (req, res) => {
  *       500:
  *         description: Error deleting tipo_actividad
  */
-app.delete('/traveler/tipo_actividad/:id', /*authenticateToken,*/ (req, res) => {
+app.delete('/traveler/tipo_actividad/:id', /*authenticateToken,*/(req, res) => {
     const id = req.params.id;
     db.query('DELETE FROM traveler.tipo_actividad WHERE id_tipo_actividad = ?', [id], (err, result) => {
         if (err) {
@@ -1928,8 +1978,19 @@ app.get('/traveler/actividades', /*authenticateToken,*/(req, res) => {
  *         description: Error fetching actividades
  */
 app.get('/traveler/actividades_completo', (req, res) => {
-    //tiene que pillar de tipo_actividad el nombre y de destinos el pais y ciudad con un join
-    db.query('SELECT * FROM actividades JOIN tipo_actividad ON actividades.id_tipo_actividad = tipo_actividad.id_tipo_actividad JOIN destinos ON actividades.id_destino = destinos.id_destino JOIN imagenes_actividades ON actividades.id_actividad = imagenes_actividades.id_actividad', (err, results) => {
+    // Ensure the query retrieves all activities even if there are no matching images
+    db.query(`
+        SELECT 
+            actividades.*, 
+            tipo_actividad.nombre_tipo_actividad, 
+            destinos.pais, 
+            destinos.ciudad, 
+            imagenes_actividades.nombre_imagen_actividad
+        FROM actividades
+        JOIN tipo_actividad ON actividades.id_tipo_actividad = tipo_actividad.id_tipo_actividad
+        JOIN destinos ON actividades.id_destino = destinos.id_destino
+        LEFT JOIN imagenes_actividades ON actividades.id_actividad = imagenes_actividades.id_actividad
+    `, (err, results) => {
         if (err) {
             console.error('Error fetching actividades:', err);
             res.status(500).json({ error: 'Error fetching actividades' });
@@ -1953,6 +2014,21 @@ app.get('/traveler/actividades_completo/:id', (req, res) => {
     });
 });
 
+
+//puto de actividades completo
+
+app.put('/traveler/actividades_completo/:id', (req, res) => {
+    const id = req.params.id;
+    const { id_destino, id_tipo_actividad, disponibilidad_actividad, precio } = req.body;
+    db.query('UPDATE traveler.actividades SET id_destino = ?, id_tipo_actividad = ?, disponibilidad_actividad = ?, precio = ? WHERE id_actividad = ?', [id_destino, id_tipo_actividad, disponibilidad_actividad, precio, id], (err, result) => {
+        if (err) {
+            console.error('Error updating actividad:', err);
+            res.status(500).json({ error: 'Error updating actividad' });
+        } else {
+            res.json({ success: true });
+        }
+    });
+});
 
 
 
@@ -2048,11 +2124,11 @@ app.get('/traveler/actividades/:id', /*authenticateToken,*/(req, res) => {
  *                 id:
  *                   type: integer
  */
-app.post('/traveler/actividades', /*authenticateToken,*/ (req, res) => {
-    const {  id_destino, id_tipo_actividad, disponibilidad_actividad, precio, descripcion } = req.body;
+app.post('/traveler/actividades', /*authenticateToken,*/(req, res) => {
+    const { id_destino, id_tipo_actividad, disponibilidad_actividad, precio, descripcion } = req.body;
     const disponibilidad = Boolean(disponibilidad_actividad);
 
-    db.query('INSERT INTO traveler.actividades ( id_destino, id_tipo_actividad, disponibilidad_actividad, precio, descripcion) VALUES ( ?, ?, ?, ?, ?)', [ id_destino, id_tipo_actividad, disponibilidad, precio, descripcion], (err, result) => {
+    db.query('INSERT INTO traveler.actividades ( id_destino, id_tipo_actividad, disponibilidad_actividad, precio, descripcion) VALUES ( ?, ?, ?, ?, ?)', [id_destino, id_tipo_actividad, disponibilidad, precio, descripcion], (err, result) => {
         if (err) {
             console.error('Error creating actividad:', err);
             res.status(500).json({ error: 'Error creating actividad' });
@@ -2099,7 +2175,7 @@ app.post('/traveler/actividades', /*authenticateToken,*/ (req, res) => {
  *       404:
  *         description: Actividad not found
  */
-app.put('/traveler/actividades/:id', /*authenticateToken,*/ (req, res) => {
+app.put('/traveler/actividades/:id', /*authenticateToken,*/(req, res) => {
     const id_actividad = req.params.id;
     const { id_destino, id_tipo_actividad, disponibilidad_actividad, precio } = req.body;
     const disponibilidad = Boolean(disponibilidad_actividad);
@@ -2135,7 +2211,7 @@ app.put('/traveler/actividades/:id', /*authenticateToken,*/ (req, res) => {
  *       404:
  *         description: Actividad not found
  */
-app.delete('/traveler/actividades/:id', /*authenticateToken,*/ (req, res) => {
+app.delete('/traveler/actividades/:id', /*authenticateToken,*/(req, res) => {
     const id = req.params.id;
     db.query('DELETE FROM traveler.actividades WHERE id_actividad = ?', [id], (err, result) => {
         if (err) {
@@ -2187,7 +2263,7 @@ app.delete('/traveler/actividades/:id', /*authenticateToken,*/ (req, res) => {
  *                       max_personas:
  *                         type: integer
  */
-app.get('/traveler/alojamientos', /*authenticateToken,*/ (req, res) => {
+app.get('/traveler/alojamientos', /*authenticateToken,*/(req, res) => {
     db.query('SELECT * FROM traveler.alojamientos', (err, results) => {
         if (err) {
             console.error('Error fetching alojamientos:', err);
@@ -2252,7 +2328,7 @@ app.get('/traveler/alojamientos_completo', (req, res) => {
  *       404:
  *         description: Alojamiento not found
  */
-app.get('/traveler/alojamientos/:id', /*authenticateToken,*/ (req, res) => {
+app.get('/traveler/alojamientos/:id', /*authenticateToken,*/(req, res) => {
     const id = req.params.id;
     console.log("Fetching alojamiento with ID:", id); // Log the ID to check if it's correct
 
@@ -2307,7 +2383,7 @@ app.get('/traveler/alojamientos/:id', /*authenticateToken,*/ (req, res) => {
  *                 id:
  *                   type: integer
  */
-app.post('/traveler/alojamientos', /*authenticateToken,*/ (req, res) => {
+app.post('/traveler/alojamientos', /*authenticateToken,*/(req, res) => {
     const { nombre_alojamiento, id_destino, precio_dia, descripcion, id_usuario, max_personas, direccion } = req.body;
     db.query('INSERT INTO traveler.alojamientos (nombre_alojamiento, id_destino, precio_dia, descripcion, id_usuario, max_personas, direccion) VALUES (?, ?, ?, ?, ?, ?, ?)', [nombre_alojamiento, id_destino, precio_dia, descripcion, id_usuario, max_personas, direccion], (err, result) => {
         if (err) {
@@ -2358,7 +2434,7 @@ app.post('/traveler/alojamientos', /*authenticateToken,*/ (req, res) => {
  *       404:
  *         description: Alojamiento not found
  */
-app.put('/traveler/alojamientos/:id', /*authenticateToken,*/ (req, res) => {
+app.put('/traveler/alojamientos/:id', /*authenticateToken,*/(req, res) => {
     const id = req.params.id;
     const { nombre_alojamiento, id_destino, precio_dia, descripcion, id_usuario, max_personas } = req.body;
     db.query('UPDATE traveler.alojamientos SET nombre_alojamiento = ?, id_destino = ?, precio_dia = ?, descripcion = ?, id_usuario = ?, max_personas = ? WHERE id_alojamiento = ?', [nombre_alojamiento, id_destino, precio_dia, descripcion, id_usuario, max_personas, id], (err, result) => {
@@ -2391,7 +2467,7 @@ app.put('/traveler/alojamientos/:id', /*authenticateToken,*/ (req, res) => {
  *       404:
  *         description: Alojamiento not found
  */
-app.delete('/traveler/alojamientos/:id', /*authenticateToken,*/ (req, res) => {
+app.delete('/traveler/alojamientos/:id', /*authenticateToken,*/(req, res) => {
     const id = req.params.id;
     db.query('DELETE FROM traveler.alojamientos WHERE id_alojamiento = ?', [id], (err, result) => {
         if (err) {
@@ -2446,7 +2522,7 @@ app.delete('/traveler/alojamientos/:id', /*authenticateToken,*/ (req, res) => {
  *       500:
  *         description: Error fetching valoraciones_alojamientos
  */
-app.get('/traveler/valoraciones_alojamientos', /*authenticateToken,*/ (req, res) => {
+app.get('/traveler/valoraciones_alojamientos', /*authenticateToken,*/(req, res) => {
     db.query('SELECT * FROM traveler.valoraciones_alojamientos', (err, results) => {
         if (err) {
             console.error('Error fetching valoraciones_alojamientos:', err);
@@ -2502,7 +2578,7 @@ app.get('/traveler/valoraciones_alojamientos', /*authenticateToken,*/ (req, res)
  *       500:
  *         description: Error fetching valoraciones_alojamientos
  */
-app.get('/traveler/valoraciones_alojamientos/:id', /*authenticateToken,*/ (req, res) => {
+app.get('/traveler/valoraciones_alojamientos/:id', /*authenticateToken,*/(req, res) => {
     const id = req.params.id;
 
     db.query('SELECT * FROM traveler.valoraciones_alojamientos WHERE id_valoracion = ?', [id], (err, results) => {
@@ -2559,7 +2635,7 @@ app.get('/traveler/valoraciones_alojamientos/:id', /*authenticateToken,*/ (req, 
  *       500:
  *         description: Error creating valoracion_alojamiento
  */
-app.post('/traveler/valoraciones_alojamientos', /*authenticateToken,*/ (req, res) => {
+app.post('/traveler/valoraciones_alojamientos', /*authenticateToken,*/(req, res) => {
     const { id_alojamiento, valoracion, comentario, id_usuario } = req.body;
     db.query('INSERT INTO traveler.valoraciones_alojamientos (id_alojamiento, valoracion, comentario, id_usuario) VALUES (?, ?, ?, ?)', [id_alojamiento, valoracion, comentario, id_usuario], (err, result) => {
         if (err) {
@@ -2612,7 +2688,7 @@ app.post('/traveler/valoraciones_alojamientos', /*authenticateToken,*/ (req, res
  *       500:
  *         description: Error updating valoracion_alojamiento
  */
-app.put('/traveler/valoraciones_alojamientos/:id', /*authenticateToken,*/ (req, res) => {
+app.put('/traveler/valoraciones_alojamientos/:id', /*authenticateToken,*/(req, res) => {
     const id = req.params.id;
     const { id_alojamiento, valoracion, comentario, id_usuario } = req.body;
     db.query('UPDATE traveler.valoraciones_alojamientos SET id_alojamiento = ?, valoracion = ?, comentario = ?, id_usuario = ? WHERE id_valoracion = ?', [id_alojamiento, valoracion, comentario, id_usuario, id], (err, result) => {
@@ -2647,7 +2723,7 @@ app.put('/traveler/valoraciones_alojamientos/:id', /*authenticateToken,*/ (req, 
  *       500:
  *         description: Error deleting valoracion_alojamiento
  */
-app.delete('/traveler/valoraciones_alojamientos/:id', /*authenticateToken,*/ (req, res) => {
+app.delete('/traveler/valoraciones_alojamientos/:id', /*authenticateToken,*/(req, res) => {
     const id = req.params.id;
     db.query('DELETE FROM traveler.valoraciones_alojamientos WHERE id_valoracion = ?', [id], (err, result) => {
         if (err) {
@@ -2693,13 +2769,13 @@ app.delete('/traveler/valoraciones_alojamientos/:id', /*authenticateToken,*/ (re
  *       500:
  *         description: Error fetching imagenes_alojamientos
  */
-app.get('/traveler/imagenes_alojamientos', /*authenticateToken,*/ (req, res) => {
+app.get('/traveler/imagenes_alojamientos', /*authenticateToken,*/(req, res) => {
     db.query('SELECT * FROM traveler.imagenes_alojamientos', (err, results) => {
         if (err) {
-            console.error('Error fetching imagenes_alojamientos:', err);
+            console.log('Todavia no tiene imagenes');
             res.status(500).json({ error: 'Error fetching imagenes_alojamientos' });
         } else {
-            res.json({ imagenes_alojamientos: results });
+            res.json({ imagenes: results });
         }
     });
 });
@@ -2740,7 +2816,7 @@ app.get('/traveler/imagenes_alojamientos', /*authenticateToken,*/ (req, res) => 
  *       500:
  *         description: Error fetching imagen_alojamiento
  */
-app.get('/traveler/imagenes_alojamientos/:id', /*authenticateToken,*/ (req, res) => {
+app.get('/traveler/imagenes_alojamientos/:id', /*authenticateToken,*/(req, res) => {
     const id = req.params.id;
 
     db.query('SELECT * FROM traveler.imagenes_alojamientos WHERE id_imagen_alojamiento = ?', [id], (err, results) => {
@@ -2752,6 +2828,23 @@ app.get('/traveler/imagenes_alojamientos/:id', /*authenticateToken,*/ (req, res)
                 res.status(404).json({ error: 'Imagen_alojamiento not found' });
             } else {
                 res.json({ imagen_alojamiento: results[0] });
+            }
+        }
+    });
+});
+
+app.get('/traveler/imagenes_alojamientos/alojamiento/:id', /*authenticateToken,*/(req, res) => {
+    const id = req.params.id;
+
+    db.query('SELECT nombre_imagen_alojamiento FROM traveler.imagenes_alojamientos WHERE id_alojamiento = ?', [id], (err, results) => {
+        if (err) {
+            console.error('Error fetching imagenes_alojamientos:', err);
+            res.status(500).json({ error: 'Error fetching imagenes_alojamientos' });
+        } else {
+            if (results.length === 0) {
+                res.status(404).json({ error: 'Imagen_alojamiento not found' });
+            } else {
+                res.json({ imagenes: results.map(row => row.nombre_imagen_alojamiento) });
             }
         }
     });
@@ -2788,7 +2881,7 @@ app.get('/traveler/imagenes_alojamientos/:id', /*authenticateToken,*/ (req, res)
  *       500:
  *         description: Error creating imagen_alojamiento
  */
-app.post('/traveler/imagenes_alojamientos', /*authenticateToken,*/ (req, res) => {
+app.post('/traveler/imagenes_alojamientos', /*authenticateToken,*/(req, res) => {
     const { id_alojamiento, nombre_imagen_alojamiento } = req.body;
     db.query('INSERT INTO traveler.imagenes_alojamientos (id_alojamiento, nombre_imagen_alojamiento) VALUES (?, ?)', [id_alojamiento, nombre_imagen_alojamiento], (err, result) => {
         if (err) {
@@ -2839,7 +2932,7 @@ app.post('/traveler/imagenes_alojamientos', /*authenticateToken,*/ (req, res) =>
  *       500:
  *         description: Error updating imagen_alojamiento
  */
-app.put('/traveler/imagenes_alojamientos/:id', /*authenticateToken,*/ (req, res) => {
+app.put('/traveler/imagenes_alojamientos/:id', /*authenticateToken,*/(req, res) => {
     const id = req.params.id;
     const { id_alojamiento, nombre_imagen_alojamiento } = req.body;
     db.query('UPDATE traveler.imagenes_alojamientos SET id_alojamiento = ?, nombre_imagen_alojamiento = ? WHERE id_imagen_alojamiento = ?', [id_alojamiento, nombre_imagen_alojamiento, id], (err, result) => {
@@ -2880,7 +2973,7 @@ app.put('/traveler/imagenes_alojamientos/:id', /*authenticateToken,*/ (req, res)
  *       500:
  *         description: Error deleting imagen_alojamiento
  */
-app.delete('/traveler/imagenes_alojamientos/:id', /*authenticateToken,*/ (req, res) => {
+app.delete('/traveler/imagenes_alojamientos/:id', /*authenticateToken,*/(req, res) => {
     const id = req.params.id;
     db.query('DELETE FROM traveler.imagenes_alojamientos WHERE id_imagen_alojamiento = ?', [id], (err, result) => {
         if (err) {
@@ -2945,7 +3038,7 @@ app.get('/traveler/imagenes_actividades', (req, res) => {
  *       500:
  *         description: Error fetching post_blog
  */
-app.get('/traveler/post_blog', /*authenticateToken,*/ (req, res) => {
+app.get('/traveler/post_blog', /*authenticateToken,*/(req, res) => {
     db.query('SELECT * FROM traveler.post_blog', (err, results) => {
         if (err) {
             console.error('Error fetching post_blog:', err);
@@ -2999,7 +3092,7 @@ app.get('/traveler/post_blog', /*authenticateToken,*/ (req, res) => {
  *       500:
  *         description: Error fetching post_blog
  */
-app.get('/traveler/post_blog/:id', /*authenticateToken,*/ (req, res) => {
+app.get('/traveler/post_blog/:id', /*authenticateToken,*/(req, res) => {
     const id = req.params.id;
 
     db.query('SELECT * FROM traveler.post_blog WHERE id_post = ?', [id], (err, results) => {
@@ -3053,7 +3146,7 @@ app.get('/traveler/post_blog/:id', /*authenticateToken,*/ (req, res) => {
  *       500:
  *         description: Error creating post_blog
  */
-app.post('/traveler/post_blog', /*authenticateToken,*/ (req, res) => {
+app.post('/traveler/post_blog', /*authenticateToken,*/(req, res) => {
     const { id_usuario, titulo, contenido } = req.body;
     db.query('INSERT INTO traveler.post_blog (id_usuario, titulo, mensaje_post) VALUES (?, ?, ?)', [id_usuario, titulo, contenido], (err, result) => {
         if (err) {
@@ -3109,7 +3202,7 @@ app.post('/traveler/post_blog', /*authenticateToken,*/ (req, res) => {
  *       500:
  *         description: Error updating post_blog
  */
-app.put('/traveler/post_blog/:id', /*authenticateToken,*/ (req, res) => {
+app.put('/traveler/post_blog/:id', /*authenticateToken,*/(req, res) => {
     const id = req.params.id;
     const { id_usuario, titulo, contenido } = req.body;
     db.query('UPDATE traveler.post_blog SET id_usuario = ?, titulo = ?, mensaje_post = ? WHERE id_post = ?', [id_usuario, titulo, contenido, id], (err, result) => {
@@ -3150,7 +3243,7 @@ app.put('/traveler/post_blog/:id', /*authenticateToken,*/ (req, res) => {
  *       500:
  *         description: Error deleting post_blog
  */
-app.delete('/traveler/post_blog/:id', /*authenticateToken,*/ (req, res) => {
+app.delete('/traveler/post_blog/:id', /*authenticateToken,*/(req, res) => {
     const id = req.params.id;
     db.query('DELETE FROM traveler.post_blog WHERE id_post = ?', [id], (err, result) => {
         if (err) {
@@ -3206,7 +3299,7 @@ app.delete('/traveler/post_blog/:id', /*authenticateToken,*/ (req, res) => {
  *       500:
  *         description: Error fetching reservas_actividades
  */
-app.get('/traveler/reservas_actividades', /*authenticateToken,*/ (req, res) => {
+app.get('/traveler/reservas_actividades', /*authenticateToken,*/(req, res) => {
     db.query('SELECT * FROM traveler.reservas_actividades', (err, results) => {
         if (err) {
             console.error('Error fetching reservas_actividades:', err);
@@ -3263,7 +3356,7 @@ app.get('/traveler/reservas_actividades', /*authenticateToken,*/ (req, res) => {
  *       500:
  *         description: Error fetching reserva_actividad
  */
-app.get('/traveler/reservas_actividades/:id', /*authenticateToken,*/ (req, res) => {
+app.get('/traveler/reservas_actividades/:id', /*authenticateToken,*/(req, res) => {
     const id = req.params.id;
 
     db.query('SELECT * FROM traveler.reservas_actividades WHERE id_reserva_actividad = ?', [id], (err, results) => {
@@ -3318,7 +3411,7 @@ app.get('/traveler/reservas_actividades/:id', /*authenticateToken,*/ (req, res) 
  *       500:
  *         description: Error creating reserva_actividad
  */
-app.post('/traveler/reservas_actividades', /*authenticateToken,*/ (req, res) => {
+app.post('/traveler/reservas_actividades', /*authenticateToken,*/(req, res) => {
     const { id_actividad, fecha_reserva_actividad, id_usuario } = req.body;
     db.query('INSERT INTO traveler.reservas_actividades (id_actividad, fecha_reserva_actividad, id_usuario) VALUES (?, ?, ?)', [id_actividad, fecha_reserva_actividad, id_usuario], (err, result) => {
         if (err) {
@@ -3377,7 +3470,7 @@ app.post('/traveler/reservas_actividades', /*authenticateToken,*/ (req, res) => 
  *       404:
  *         description: reserva_actividad not found
  */
-app.put('/traveler/reservas_actividades/:id', /*authenticateToken,*/ (req, res) => {
+app.put('/traveler/reservas_actividades/:id', /*authenticateToken,*/(req, res) => {
     const id = req.params.id;
     const { id_actividad, fecha_reserva_actividad, id_usuario } = req.body;
     db.query('UPDATE traveler.reservas_actividades SET id_actividad = ?, fecha_reserva_actividad = ?, id_usuario = ? WHERE id_reserva_actividad = ?', [id_actividad, fecha_reserva_actividad, id_usuario, id], (err, result) => {
@@ -3420,7 +3513,7 @@ app.put('/traveler/reservas_actividades/:id', /*authenticateToken,*/ (req, res) 
  *       404:
  *         description: reserva_actividad not found
  */
-app.delete('/traveler/reservas_actividades/:id', /*authenticateToken,*/ (req, res) => {
+app.delete('/traveler/reservas_actividades/:id', /*authenticateToken,*/(req, res) => {
     const id = req.params.id;
     db.query('DELETE FROM traveler.reservas_actividades WHERE id_reserva_actividad = ?', [id], (err, result) => {
         if (err) {
@@ -3477,7 +3570,7 @@ app.delete('/traveler/reservas_actividades/:id', /*authenticateToken,*/ (req, re
  *       500:
  *         description: Error fetching reservas_alojamientos
  */
-app.get('/traveler/reservas_alojamientos', /*authenticateToken,*/ (req, res) => {
+app.get('/traveler/reservas_alojamientos', /*authenticateToken,*/(req, res) => {
     db.query('SELECT * FROM traveler.reservas_alojamientos', (err, results) => {
         if (err) {
             console.error('Error fetching reservas_alojamientos:', err);
@@ -3535,7 +3628,7 @@ app.get('/traveler/reservas_alojamientos', /*authenticateToken,*/ (req, res) => 
  *       500:
  *         description: Error fetching reservas_alojamientos
  */
-app.get('/traveler/reservas_alojamientos/:id', /*authenticateToken,*/ (req, res) => {
+app.get('/traveler/reservas_alojamientos/:id', /*authenticateToken,*/(req, res) => {
     const id = req.params.id;
 
     db.query('SELECT * FROM traveler.reservas_alojamientos WHERE id_reserva_alojamiento = ?', [id], (err, results) => {
@@ -3594,7 +3687,7 @@ app.get('/traveler/reservas_alojamientos/:id', /*authenticateToken,*/ (req, res)
  *       500:
  *         description: Error creating reserva_alojamiento
  */
-app.post('/traveler/reservas_alojamientos', /*authenticateToken,*/ (req, res) => {
+app.post('/traveler/reservas_alojamientos', /*authenticateToken,*/(req, res) => {
     const { id_alojamiento, id_usuario, fecha_reserva_inicio_alojamiento, fecha_reserva_final_alojamiento } = req.body;
     db.query('INSERT INTO traveler.reservas_alojamientos (id_alojamiento, id_usuario, fecha_reserva_inicio_alojamiento, fecha_reserva_final_alojamiento) VALUES (?, ?, ?, ?)',
         [id_alojamiento, id_usuario, fecha_reserva_inicio_alojamiento, fecha_reserva_final_alojamiento], (err, result) => {
@@ -3658,7 +3751,7 @@ app.post('/traveler/reservas_alojamientos', /*authenticateToken,*/ (req, res) =>
  *       404:
  *         description: reserva_alojamiento not found
  */
-app.put('/traveler/reservas_alojamientos/:id', /*authenticateToken,*/ (req, res) => {
+app.put('/traveler/reservas_alojamientos/:id', /*authenticateToken,*/(req, res) => {
     const id = req.params.id;
     const { id_alojamiento, id_usuario, fecha_reserva_inicio_alojamiento, fecha_reserva_final_alojamiento } = req.body;
     db.query('UPDATE traveler.reservas_alojamientos SET id_alojamiento = ?, id_usuario = ?, fecha_reserva_inicio_alojamiento = ?, fecha_reserva_final_alojamiento = ? WHERE id_reserva_alojamiento = ?',
@@ -3702,7 +3795,7 @@ app.put('/traveler/reservas_alojamientos/:id', /*authenticateToken,*/ (req, res)
  *       404:
  *         description: reserva_alojamiento not found
  */
-app.delete('/traveler/reservas_alojamientos/:id', /*authenticateToken,*/ (req, res) => {
+app.delete('/traveler/reservas_alojamientos/:id', /*authenticateToken,*/(req, res) => {
     const id = req.params.id;
     db.query('DELETE FROM traveler.reservas_alojamientos WHERE id_reserva_alojamiento = ?', [id], (err, result) => {
         if (err) {
@@ -3759,7 +3852,7 @@ app.delete('/traveler/reservas_alojamientos/:id', /*authenticateToken,*/ (req, r
  *       500:
  *         description: Error fetching reservas_vehiculos
  */
-app.get('/traveler/reservas_vehiculos', /*authenticateToken,*/ (req, res) => {
+app.get('/traveler/reservas_vehiculos', /*authenticateToken,*/(req, res) => {
     db.query('SELECT * FROM traveler.reservas_vehiculos', (err, results) => {
         if (err) {
             console.error('Error fetching reservas_vehiculos:', err);
@@ -3817,7 +3910,7 @@ app.get('/traveler/reservas_vehiculos', /*authenticateToken,*/ (req, res) => {
  *       500:
  *         description: Error fetching reservas_vehiculos
  */
-app.get('/traveler/reservas_vehiculos/:id', /*authenticateToken,*/ (req, res) => {
+app.get('/traveler/reservas_vehiculos/:id', /*authenticateToken,*/(req, res) => {
     const id = req.params.id;
 
     db.query('SELECT * FROM traveler.reservas_vehiculos WHERE id_reserva_vehiculo = ?', [id], (err, results) => {
@@ -3872,7 +3965,7 @@ app.get('/traveler/reservas_vehiculos/:id', /*authenticateToken,*/ (req, res) =>
  *       500:
  *         description: Error creating reserva_vehiculo
  */
-app.post('/traveler/reservas_vehiculos', /*authenticateToken,*/ (req, res) => {
+app.post('/traveler/reservas_vehiculos', /*authenticateToken,*/(req, res) => {
     const { id_usuario, fecha_reserva_vehiculo } = req.body;
     db.query('INSERT INTO traveler.reservas_vehiculos (id_usuario, fecha_reserva_vehiculo) VALUES (?, ?)', [id_usuario, fecha_reserva_vehiculo], (err, result) => {
         if (err) {
@@ -3931,7 +4024,7 @@ app.post('/traveler/reservas_vehiculos', /*authenticateToken,*/ (req, res) => {
  *       500:
  *         description: Error updating reserva_vehiculo
  */
-app.put('/traveler/reservas_vehiculos/:id', /*authenticateToken,*/ (req, res) => {
+app.put('/traveler/reservas_vehiculos/:id', /*authenticateToken,*/(req, res) => {
     const id = req.params.id;
     const { id_usuario, fecha_reserva_vehiculo } = req.body;
     db.query('UPDATE traveler.reservas_vehiculos SET id_usuario = ?, fecha_reserva_vehiculo = ? WHERE id_reserva_vehiculo = ?', [id_usuario, fecha_reserva_vehiculo, id], (err, result) => {
@@ -3974,7 +4067,7 @@ app.put('/traveler/reservas_vehiculos/:id', /*authenticateToken,*/ (req, res) =>
  *       500:
  *         description: Error deleting reserva_vehiculo
  */
-app.delete('/traveler/reservas_vehiculos/:id', /*authenticateToken,*/ (req, res) => {
+app.delete('/traveler/reservas_vehiculos/:id', /*authenticateToken,*/(req, res) => {
     const id = req.params.id;
     db.query('DELETE FROM traveler.reservas_vehiculos WHERE id_reserva_vehiculo = ?', [id], (err, result) => {
         if (err) {
@@ -4027,7 +4120,7 @@ app.delete('/traveler/reservas_vehiculos/:id', /*authenticateToken,*/ (req, res)
  *       500:
  *         description: Error fetching reservas_vuelos
  */
-app.get('/traveler/reservas_vuelos', /*authenticateToken,*/ (req, res) => {
+app.get('/traveler/reservas_vuelos', /*authenticateToken,*/(req, res) => {
     db.query('SELECT * FROM traveler.reservas_vuelos', (err, results) => {
         if (err) {
             console.error('Error fetching reservas_vuelos:', err);
@@ -4081,7 +4174,7 @@ app.get('/traveler/reservas_vuelos', /*authenticateToken,*/ (req, res) => {
  *       500:
  *         description: Error fetching reserva_vuelo
  */
-app.get('/traveler/reservas_vuelos/:id', /*authenticateToken,*/ (req, res) => {
+app.get('/traveler/reservas_vuelos/:id', /*authenticateToken,*/(req, res) => {
     const id = req.params.id;
 
     db.query('SELECT * FROM traveler.reservas_vuelos WHERE id_reserva_vuelo = ?', [id], (err, results) => {
@@ -4140,7 +4233,7 @@ app.get('/traveler/reservas_vuelos/:id', /*authenticateToken,*/ (req, res) => {
  *       500:
  *         description: Error creating reserva_vuelo
  */
-app.post('/traveler/reservas_vuelos', /*authenticateToken,*/ (req, res) => {
+app.post('/traveler/reservas_vuelos', /*authenticateToken,*/(req, res) => {
     const { id_usuario, id_vuelo, fecha_reserva_vuelo } = req.body;
     db.query('INSERT INTO traveler.reservas_vuelos (id_usuario, id_vuelo, fecha_reserva_vuelo) VALUES (?, ?, ?)', [id_usuario, id_vuelo, fecha_reserva_vuelo], (err, result) => {
         if (err) {
@@ -4193,7 +4286,7 @@ app.post('/traveler/reservas_vuelos', /*authenticateToken,*/ (req, res) => {
  *       500:
  *         description: Error updating reserva_vuelo
  */
-app.put('/traveler/reservas_vuelos/:id', /*authenticateToken,*/ (req, res) => {
+app.put('/traveler/reservas_vuelos/:id', /*authenticateToken,*/(req, res) => {
     const id = req.params.id;
     const { id_usuario, id_vuelo, fecha_reserva_vuelo } = req.body;
     db.query('UPDATE traveler.reservas_vuelos SET id_usuario = ?, id_vuelo = ?, fecha_reserva_vuelo = ? WHERE id_reserva_vuelo = ?', [id_usuario, id_vuelo, fecha_reserva_vuelo, id], (err, result) => {
@@ -4226,7 +4319,7 @@ app.put('/traveler/reservas_vuelos/:id', /*authenticateToken,*/ (req, res) => {
  *       500:
  *         description: Error deleting reserva_vuelo
  */
-app.delete('/traveler/reservas_vuelos/:id', /*authenticateToken,*/ (req, res) => {
+app.delete('/traveler/reservas_vuelos/:id', /*authenticateToken,*/(req, res) => {
     const id = req.params.id;
     db.query('DELETE FROM traveler.reservas_vuelos WHERE id_reserva_vuelo = ?', [id], (err, result) => {
         if (err) {
@@ -4276,7 +4369,7 @@ app.delete('/traveler/reservas_vuelos/:id', /*authenticateToken,*/ (req, res) =>
  *       500:
  *         description: Error fetching contacto
  */
-app.get('/contacto/contacto', /*authenticateToken,*/ (req, res) => {
+app.get('/contacto/contacto', /*authenticateToken,*/(req, res) => {
     db.query('SELECT * FROM contacto.contacto', (err, results) => {
         if (err) {
             console.error('Error fetching contacto:', err);
@@ -4330,10 +4423,10 @@ app.get('/contacto/contacto', /*authenticateToken,*/ (req, res) => {
  *       500:
  *         description: Error fetching contacto
  */
-app.get('/contacto/contacto/:id', /*authenticateToken,*/ (req, res) => {
+app.get('/contacto/contacto/:id', /*authenticateToken,*/(req, res) => {
     const id = req.params.id;
 
-    db.query('SELECT * FROM contacto.contacto WHERE id-contacto = ?', [id], (err, results) => {
+    db.query('SELECT * FROM contacto.contacto WHERE id_contacto = ?', [id], (err, results) => {
         if (err) {
             console.error('Error fetching contacto:', err);
             res.status(500).json({ error: 'Error fetching contacto' });
@@ -4405,7 +4498,7 @@ app.get('/contacto/contacto/:id', /*authenticateToken,*/ (req, res) => {
  *       500:
  *         description: Error creating contacto
  */
-app.post('/contacto/contacto', /*authenticateToken,*/ (req, res) => {
+app.post('/contacto/contacto', /*authenticateToken,*/(req, res) => {
     const { nombre, apellido1, apellido2, correo, telefono, asunto, mensaje } = req.body;
     db.query('INSERT INTO contacto.contacto (nombre, apellido1, apellido2, correo, telefono, asunto, mensaje) VALUES (?, ?, ?, ?, ?, ?, ?)', [nombre, apellido1, apellido2, correo, telefono, asunto, mensaje], (err, result) => {
         if (err) {
@@ -4468,12 +4561,12 @@ app.post('/contacto/contacto', /*authenticateToken,*/ (req, res) => {
  *       404:
  *         description: Contacto entry not found
  */
-app.put('/contacto/contacto/:id', /*authenticateToken,*/ (req, res) => {
+app.put('/contacto/contacto/:id', /*authenticateToken,*/(req, res) => {
     const id = req.params.id;
     const { nombre, apellido1, apellido2, correo, telefono, asunto, mensaje } = req.body;
 
     db.query(
-        'UPDATE contacto.contacto SET nombre = ?, apellido1 = ?, apellido2 = ?, correo = ?, telefono = ?, asunto = ?, mensaje = ? WHERE `id-contacto` = ?',
+        'UPDATE contacto.contacto SET nombre = ?, apellido1 = ?, apellido2 = ?, correo = ?, telefono = ?, asunto = ?, mensaje = ? WHERE `id_contacto` = ?',
         [nombre, apellido1, apellido2, correo, telefono, asunto, mensaje, id],
         (err, result) => {
             if (err) {
@@ -4484,6 +4577,40 @@ app.put('/contacto/contacto/:id', /*authenticateToken,*/ (req, res) => {
             }
         }
     );
+});
+
+
+//set resuelto
+/**
+ * @swagger
+ * /contacto/contacto/resuelto/{id}:
+ *   put:
+ *     summary: Set contacto entry as resolved by ID
+ *     description: Marks a specific contacto entry as resolved by its ID.
+ *     tags: [Contacto]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         description: The ID of the contacto entry to mark as resolved.
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Contacto entry successfully marked as resolved
+ *       500:
+ *         description: Error marking contacto entry as resolved
+ */
+app.put('/contacto/contacto/resuelto/:id', /*authenticateToken,*/(req, res) => {
+    const id = req.params.id;
+    db.query('UPDATE contacto.contacto SET resuelto = 1 WHERE `id_contacto` = ?', [id], (err, result) => {
+        if (err) {
+            console.error('Error marking contacto as resolved:', err);
+            res.status(500).json({ error: 'Error marking contacto entry as resolved' });
+        } else {
+            res.json({ success: true });
+        }
+    });
 });
 
 
@@ -4508,9 +4635,9 @@ app.put('/contacto/contacto/:id', /*authenticateToken,*/ (req, res) => {
  *       500:
  *         description: Error deleting contacto entry
  */
-app.delete('/contacto/contacto/:id', /*authenticateToken,*/ (req, res) => {
+app.delete('/contacto/contacto/:id', /*authenticateToken,*/(req, res) => {
     const id = req.params.id;
-    db.query('DELETE FROM contacto.contacto WHERE id-contacto = ?', [id], (err, result) => {
+    db.query('DELETE FROM contacto.contacto WHERE id_contacto = ?', [id], (err, result) => {
         if (err) {
             console.error('Error deleting contacto:', err);
             res.status(500).json({ error: 'Error deleting contacto' });
@@ -4519,6 +4646,18 @@ app.delete('/contacto/contacto/:id', /*authenticateToken,*/ (req, res) => {
         }
     });
 });
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
