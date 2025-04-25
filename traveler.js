@@ -199,7 +199,12 @@ app.post('/traveler/login', (req, res) => {
             );
 
             // Return the token
-            res.status(200).json({ token });
+            res.status(200).json({ 
+                token, 
+                id_usuario: user.id_usuario, 
+                id_rol: user.id_rol, 
+                correo: user.correo 
+            });
         });
     });
 });
@@ -1978,19 +1983,8 @@ app.get('/traveler/actividades', /*authenticateToken,*/(req, res) => {
  *         description: Error fetching actividades
  */
 app.get('/traveler/actividades_completo', (req, res) => {
-    // Ensure the query retrieves all activities even if there are no matching images
-    db.query(`
-        SELECT 
-            actividades.*, 
-            tipo_actividad.nombre_tipo_actividad, 
-            destinos.pais, 
-            destinos.ciudad, 
-            imagenes_actividades.nombre_imagen_actividad
-        FROM actividades
-        JOIN tipo_actividad ON actividades.id_tipo_actividad = tipo_actividad.id_tipo_actividad
-        JOIN destinos ON actividades.id_destino = destinos.id_destino
-        LEFT JOIN imagenes_actividades ON actividades.id_actividad = imagenes_actividades.id_actividad
-    `, (err, results) => {
+    //tiene que pillar de tipo_actividad el nombre y de destinos el pais y ciudad con un join
+    db.query('SELECT * FROM actividades JOIN tipo_actividad ON actividades.id_tipo_actividad = tipo_actividad.id_tipo_actividad JOIN destinos ON actividades.id_destino = destinos.id_destino JOIN imagenes_actividades ON actividades.id_actividad = imagenes_actividades.id_actividad', (err, results) => {
         if (err) {
             console.error('Error fetching actividades:', err);
             res.status(500).json({ error: 'Error fetching actividades' });
@@ -1999,6 +1993,20 @@ app.get('/traveler/actividades_completo', (req, res) => {
         }
     });
 });
+
+//actividades completo sin imagenes
+app.get('/traveler/actividades_completo_sin_imagenes', (req, res) => {
+    //tiene que pillar de tipo_actividad el nombre y de destinos el pais y ciudad con un join
+    db.query('SELECT * FROM actividades JOIN tipo_actividad ON actividades.id_tipo_actividad = tipo_actividad.id_tipo_actividad JOIN destinos ON actividades.id_destino = destinos.id_destino', (err, results) => {
+        if (err) {
+            console.error('Error fetching actividades:', err);
+            res.status(500).json({ error: 'Error fetching actividades' });
+        } else {
+            res.json({ actividades: results });
+        }
+    });
+}
+);
 
 //actividades completo
 
