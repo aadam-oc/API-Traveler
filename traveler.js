@@ -90,8 +90,8 @@ const authenticateToken = (req, res, next) => {
             console.error('Invalid token:', err);
             return res.status(403).json({ error: 'Invalid token' });
         }
-        req.user = user;  // Agregar el usuario al objeto de la solicitud
-        next();  // Continuar con la solicitud
+        req.user = user;  
+        next();  
     });
 };
 
@@ -324,6 +324,8 @@ app.post('/traveler/register', async (req, res) => {
  *     description: Recupera una lista de todos los usuarios registrados en la base de datos. Requiere autenticación JWT.
  *     tags:
  *       - Usuarios
+ *     security:
+ *       - BearerAuth: []
  *     responses:
  *       200:
  *         description: Lista de usuarios obtenida con éxito
@@ -339,22 +341,38 @@ app.post('/traveler/register', async (req, res) => {
  *                     properties:
  *                       id_usuario:
  *                         type: integer
+ *                         description: ID único del usuario
  *                         example: 1
- *                       nombre:
+ *                       correo:
  *                         type: string
- *                         example: "Juan Pérez"
- *                       email:
- *                         type: string
+ *                         description: Correo electrónico del usuario
  *                         example: "juan.perez@example.com"
- *                       rol:
- *                         type: string
- *                         example: "Administrador"
+ *                       id_rol:
+ *                         type: integer
+ *                         description: ID del rol del usuario
+ *                         example: 2
  *       401:
  *         description: No autorizado, token inválido
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: "Access denied, token missing!"
  *       500:
  *         description: Error interno del servidor
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: "Error fetching users"
  */
-app.get('/traveler/usuarios', authenticateToken,(req, res) => {
+app.get('/traveler/usuarios', authenticateToken, (req, res) => {
     db.query('SELECT * FROM traveler.usuarios', (err, results) => {
         if (err) {
             console.error('Error fetching users:', err);
@@ -367,6 +385,96 @@ app.get('/traveler/usuarios', authenticateToken,(req, res) => {
 
 
 //crear usuario completo con rol y caracteristicas
+/**
+ * @swagger
+ * /traveler/usuarios_full:
+ *   post:
+ *     summary: Create a new user with full details
+ *     description: Adds a new user to the database along with their role and personal characteristics. Requires authentication.
+ *     tags:
+ *       - Usuarios
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - correo
+ *               - contrasena
+ *               - id_rol
+ *               - nombre
+ *               - apellido1
+ *               - apellido2
+ *               - telefono1
+ *             properties:
+ *               correo:
+ *                 type: string
+ *                 description: Email of the user.
+ *                 example: user@example.com
+ *               contrasena:
+ *                 type: string
+ *                 description: Password of the user.
+ *                 example: password123
+ *               id_rol:
+ *                 type: integer
+ *                 description: Role ID of the user.
+ *                 example: 2
+ *               nombre:
+ *                 type: string
+ *                 description: First name of the user.
+ *                 example: John
+ *               apellido1:
+ *                 type: string
+ *                 description: First surname of the user.
+ *                 example: Doe
+ *               apellido2:
+ *                 type: string
+ *                 description: Second surname of the user.
+ *                 example: Smith
+ *               telefono1:
+ *                 type: string
+ *                 description: Primary phone number of the user.
+ *                 example: "+123456789"
+ *               telefono2:
+ *                 type: string
+ *                 description: Secondary phone number of the user (optional).
+ *                 example: "+987654321"
+ *     responses:
+ *       201:
+ *         description: User created successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: integer
+ *                   description: The ID of the newly created user.
+ *                   example: 1
+ *       400:
+ *         description: Invalid input data.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: Invalid input data
+ *       500:
+ *         description: Error creating user or user characteristics.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: Error creating user
+ */
 app.post('/traveler/usuarios_full', authenticateToken, (req, res) => {
     const { correo, contrasena, id_rol, nombre, apellido1, apellido2, telefono1, telefono2 } = req.body;
 
@@ -393,10 +501,107 @@ app.post('/traveler/usuarios_full', authenticateToken, (req, res) => {
 });
 
 
+/**
+ * @swagger
+ * /traveler/usuarios_full/{id}:
+ *   put:
+ *     summary: Update a user's full details by ID
+ *     description: Updates a user's email, password, role, and personal characteristics by their ID. Requires authentication.
+ *     tags:
+ *       - Usuarios
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         description: The ID of the user to update.
+ *         schema:
+ *           type: integer
+ *           example: 1
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - correo
+ *               - contrasena
+ *               - id_rol
+ *               - nombre
+ *               - apellido1
+ *               - apellido2
+ *               - telefono1
+ *             properties:
+ *               correo:
+ *                 type: string
+ *                 description: The user's email.
+ *                 example: user@example.com
+ *               contrasena:
+ *                 type: string
+ *                 description: The user's password.
+ *                 example: password123
+ *               id_rol:
+ *                 type: integer
+ *                 description: The role ID of the user.
+ *                 example: 2
+ *               nombre:
+ *                 type: string
+ *                 description: The user's first name.
+ *                 example: John
+ *               apellido1:
+ *                 type: string
+ *                 description: The user's first surname.
+ *                 example: Doe
+ *               apellido2:
+ *                 type: string
+ *                 description: The user's second surname.
+ *                 example: Smith
+ *               telefono1:
+ *                 type: string
+ *                 description: The user's primary phone number.
+ *                 example: "+123456789"
+ *               telefono2:
+ *                 type: string
+ *                 description: The user's secondary phone number (optional).
+ *                 example: "+987654321"
+ *     responses:
+ *       200:
+ *         description: User updated successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *       404:
+ *         description: User not found.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: User not found.
+ *       500:
+ *         description: Error updating user or user characteristics.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: Error updating user.
+ */
 app.put('/traveler/usuarios_full/:id', authenticateToken, (req, res) => {
     const { id } = req.params;
     const { correo, contrasena, id_rol, nombre, apellido1, apellido2, telefono1, telefono2 } = req.body;
-    db.query(` SELECT * FROM traveler.usuarios WHERE id_usuario = ?`, [id], (err, results) => {
+    db.query(`SELECT * FROM traveler.usuarios WHERE id_usuario = ?`, [id], (err, results) => {
         if (err) {
             console.error('Error fetching user:', err);
             return res.status(500).json({ error: 'Error fetching user' });
