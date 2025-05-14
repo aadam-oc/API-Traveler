@@ -43,7 +43,7 @@ const swaggerOptions = {
                 BearerAuth: {
                     type: "http",
                     scheme: "bearer",
-                    bearerFormat: "JWT"  
+                    bearerFormat: "JWT"
                 }
             }
         },
@@ -71,15 +71,14 @@ const db = mysql.createConnection({
 db.connect((err) => {
     if (err) {
         console.error("Error connecting to the database:", err);
-        process.exit(1); 
+        process.exit(1);
     }
     console.log("Connected to the database.");
 });
 
 // Middleware to verify JWT
 const authenticateToken = (req, res, next) => {
-    
-    const token = req.headers['authorization']?.split(' ')[1];  
+    const token = req.headers['authorization']?.split(' ')[1];
 
     if (!token) {
         return res.status(401).json({ error: 'Access denied, token missing!' });
@@ -90,43 +89,82 @@ const authenticateToken = (req, res, next) => {
             console.error('Invalid token:', err);
             return res.status(403).json({ error: 'Invalid token' });
         }
-        req.user = user;  
-        next();  
+        req.user = user;
+        next();
     });
 };
 
+/**
+ * @swagger
+ * tags:
+ *   - name: Auth
+ *     description: Endpoints para la autenticación de usuarios y registro
+ *   - name: Usuarios
+ *     description: Endpoints para la gestión de usuarios
+ *   - name: Roles
+ *     description: Endpoints para la gestión de roles
+ *   - name: Características Usuarios
+ *     description: Endpoints para la gestión de características de usuarios
+ *   - name: Destinos
+ *     description: Endpoints para la gestión de destinos
+ *   - name: Tipo Actividad
+ *     description: Endpoints para la gestión de tipos de actividad
+ *   - name: Actividades
+ *     description: Endpoints para la gestión de actividades
+ *   - name: Alojamientos
+ *     description: Endpoints para la gestión de alojamientos
+ *   - name: Valoraciones Alojamientos
+ *     description: Endpoints para la gestión de valoraciones de alojamientos
+ *   - name: Imagenes Alojamientos
+ *     description: Endpoints para la gestión de imágenes de alojamientos
+ *   - name: Imagenes Actividades
+ *     description: Endpoints para la gestión de imágenes de actividades
+ *   - name: Post Blog
+ *     description: Endpoints para la gestión de publicaciones de blog
+ *   - name: Reservas Actividades
+ *     description: Endpoints para la gestión de reservas de actividades
+ *   - name: Reservas Alojamientos
+ *     description: Endpoints para la gestión de reservas de alojamientos
+ *   - name: Reservas Vehículos
+ *     description: Endpoints para la gestión de reservas de vehículos
+ *   - name: Reservas Vuelos
+ *     description: Endpoints para la gestión de reservas de vuelos
+ *   - name: Contacto
+ *     description: Endpoints para la gestión de contactos
+ *   - name: Imágenes Usuarios
+ *     description: Endpoints para la gestión de imágenes de usuarios
+ */
 
 
 
 
 //Login
-
 /**
  * @swagger
  * /traveler/login:
  *   post:
- *     summary: Login a user and generate a JWT token
- *     description: Authenticates a user by verifying email and password, and returns a JWT token upon successful login.
- *     tags:
- *       - Auth
+ *     summary: User login
+ *     description: Authenticates a user by email and password, and returns a JWT token if successful.
+ *     tags: [Auth]
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
+ *             required:
+ *               - correo
+ *               - contrasena
  *             properties:
  *               correo:
  *                 type: string
- *                 description: User's email address
- *                 example: adamortcas@gmail.com
+ *                 example: admin@gmail.com
  *               contrasena:
  *                 type: string
- *                 description: User's password
- *                 example: adamortcas
+ *                 example: admin
  *     responses:
  *       200:
- *         description: Successful login, returns a JWT token
+ *         description: Login successful, returns JWT and user data
  *         content:
  *           application/json:
  *             schema:
@@ -134,8 +172,26 @@ const authenticateToken = (req, res, next) => {
  *               properties:
  *                 token:
  *                   type: string
- *                   description: JWT token for authentication
- *                   example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+ *                   description: JWT token
+ *                 id_usuario:
+ *                   type: integer
+ *                   description: ID of the user
+ *                 id_rol:
+ *                   type: integer
+ *                   description: Role ID of the user
+ *                 correo:
+ *                   type: string
+ *                   description: Email of the user
+ *       400:
+ *         description: Missing email or password
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: Correo y contraseña son obligatorios
  *       401:
  *         description: Invalid credentials
  *         content:
@@ -145,9 +201,9 @@ const authenticateToken = (req, res, next) => {
  *               properties:
  *                 error:
  *                   type: string
- *                   example: "Correo o contraseña incorrectos"
+ *                   example: Correo o contraseña incorrectos
  *       500:
- *         description: Internal server error
+ *         description: Server error during login process
  *         content:
  *           application/json:
  *             schema:
@@ -155,7 +211,7 @@ const authenticateToken = (req, res, next) => {
  *               properties:
  *                 error:
  *                   type: string
- *                   example: "Error processing login"
+ *                   example: Error processing login
  */
 app.post('/traveler/login', (req, res) => {
     const { correo, contrasena } = req.body;
@@ -192,11 +248,11 @@ app.post('/traveler/login', (req, res) => {
                 { expiresIn: '10h' }
             );
 
-            res.status(200).json({ 
-                token, 
-                id_usuario: user.id_usuario, 
-                id_rol: user.id_rol, 
-                correo: user.correo 
+            res.status(200).json({
+                token,
+                id_usuario: user.id_usuario,
+                id_rol: user.id_rol,
+                correo: user.correo
             });
         });
     });
@@ -205,34 +261,38 @@ app.post('/traveler/login', (req, res) => {
 
 
 
-//Register
 
+
+
+//Register
 /**
  * @swagger
  * /traveler/register:
  *   post:
- *     summary: Register a new user and generate a JWT token
- *     description: Register a new user with their email and password, and generate a JWT token for authentication.
- *     tags:
- *       - Auth
+ *     summary: Registrar un nuevo usuario
+ *     description: Registra un nuevo usuario con correo y contraseña. Devuelve un token JWT al registrarse correctamente.
+ *     tags: [Auth]
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
+ *             required:
+ *               - correo
+ *               - contrasena
  *             properties:
  *               correo:
  *                 type: string
- *                 description: User's email address
- *                 example: user@example.com
+ *                 description: Correo electrónico del usuario
+ *                 example: ejemplo@correo.com
  *               contrasena:
  *                 type: string
- *                 description: User's password
- *                 example: password123
+ *                 description: Contraseña del usuario
+ *                 example: MiContrasenaSegura123
  *     responses:
  *       201:
- *         description: User registered successfully
+ *         description: Usuario registrado con éxito
  *         content:
  *           application/json:
  *             schema:
@@ -240,31 +300,14 @@ app.post('/traveler/login', (req, res) => {
  *               properties:
  *                 message:
  *                   type: string
- *                   example: "Usuario registrado con éxito"
+ *                   example: Usuario registrado con éxito
  *                 token:
  *                   type: string
- *                   description: JWT token for authentication
- *                   example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+ *                   description: Token JWT generado para el usuario
  *       400:
- *         description: Missing required fields or email already registered
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 error:
- *                   type: string
- *                   example: "Correo y contraseña son obligatorios"
+ *         description: Correo o contraseña faltantes, o el correo ya está registrado
  *       500:
- *         description: Server error
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 error:
- *                   type: string
- *                   example: "Error registering user"
+ *         description: Error interno del servidor al registrar el usuario
  */
 app.post('/traveler/register', async (req, res) => {
     const { correo, contrasena } = req.body;
@@ -314,21 +357,22 @@ app.post('/traveler/register', async (req, res) => {
 
 
 
-// Usuarios
 
+
+
+// Usuarios
 /**
  * @swagger
  * /traveler/usuarios:
  *   get:
  *     summary: Obtener todos los usuarios
- *     description: Recupera una lista de todos los usuarios registrados en la base de datos. Requiere autenticación JWT.
- *     tags:
- *       - Usuarios
+ *     description: Retorna una lista de todos los usuarios registrados.
+ *     tags: [Usuarios]
  *     security:
  *       - BearerAuth: []
  *     responses:
  *       200:
- *         description: Lista de usuarios obtenida con éxito
+ *         description: Lista de usuarios obtenida exitosamente
  *         content:
  *           application/json:
  *             schema:
@@ -341,36 +385,17 @@ app.post('/traveler/register', async (req, res) => {
  *                     properties:
  *                       id_usuario:
  *                         type: integer
- *                         description: ID único del usuario
- *                         example: 1
+ *                         description: ID del usuario
  *                       correo:
  *                         type: string
- *                         description: Correo electrónico del usuario
- *                         example: "juan.perez@example.com"
+ *                         description: Correo del usuario
  *                       id_rol:
  *                         type: integer
  *                         description: ID del rol del usuario
- *                         example: 2
  *       401:
- *         description: No autorizado, token inválido
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 error:
- *                   type: string
- *                   example: "Access denied, token missing!"
+ *         description: Token no proporcionado o inválido
  *       500:
- *         description: Error interno del servidor
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 error:
- *                   type: string
- *                   example: "Error fetching users"
+ *         description: Error al obtener los usuarios
  */
 app.get('/traveler/usuarios', authenticateToken, (req, res) => {
     db.query('SELECT * FROM traveler.usuarios', (err, results) => {
@@ -382,17 +407,13 @@ app.get('/traveler/usuarios', authenticateToken, (req, res) => {
     });
 });
 
-
-
-//crear usuario completo con rol y caracteristicas
 /**
  * @swagger
  * /traveler/usuarios_full:
  *   post:
- *     summary: Create a new user with full details
- *     description: Adds a new user to the database along with their role and personal characteristics. Requires authentication.
- *     tags:
- *       - Usuarios
+ *     summary: Crear un usuario completo
+ *     description: Crea un usuario con sus características asociadas.
+ *     tags: [Usuarios]
  *     security:
  *       - BearerAuth: []
  *     requestBody:
@@ -407,73 +428,47 @@ app.get('/traveler/usuarios', authenticateToken, (req, res) => {
  *               - id_rol
  *               - nombre
  *               - apellido1
- *               - apellido2
  *               - telefono1
  *             properties:
  *               correo:
  *                 type: string
- *                 description: Email of the user.
- *                 example: user@example.com
+ *                 description: Correo del usuario
+ *                 example: usuario@example.com
  *               contrasena:
  *                 type: string
- *                 description: Password of the user.
- *                 example: password123
+ *                 description: Contraseña del usuario
+ *                 example: MiContrasenaSegura123
  *               id_rol:
  *                 type: integer
- *                 description: Role ID of the user.
+ *                 description: ID del rol del usuario
  *                 example: 2
  *               nombre:
  *                 type: string
- *                 description: First name of the user.
- *                 example: John
+ *                 description: Nombre del usuario
+ *                 example: Juan
  *               apellido1:
  *                 type: string
- *                 description: First surname of the user.
- *                 example: Doe
+ *                 description: Primer apellido del usuario
+ *                 example: Pérez
  *               apellido2:
  *                 type: string
- *                 description: Second surname of the user.
- *                 example: Smith
+ *                 description: Segundo apellido del usuario
+ *                 example: García
  *               telefono1:
  *                 type: string
- *                 description: Primary phone number of the user.
- *                 example: "+123456789"
+ *                 description: Teléfono principal del usuario
+ *                 example: "612345678"
  *               telefono2:
  *                 type: string
- *                 description: Secondary phone number of the user (optional).
- *                 example: "+987654321"
+ *                 description: Teléfono secundario del usuario
+ *                 example: "698765432"
  *     responses:
  *       201:
- *         description: User created successfully.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 id:
- *                   type: integer
- *                   description: The ID of the newly created user.
- *                   example: 1
+ *         description: Usuario creado exitosamente
  *       400:
- *         description: Invalid input data.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 error:
- *                   type: string
- *                   example: Invalid input data
+ *         description: Datos de entrada inválidos
  *       500:
- *         description: Error creating user or user characteristics.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 error:
- *                   type: string
- *                   example: Error creating user
+ *         description: Error al crear el usuario
  */
 app.post('/traveler/usuarios_full', authenticateToken, (req, res) => {
     const { correo, contrasena, id_rol, nombre, apellido1, apellido2, telefono1, telefono2 } = req.body;
@@ -482,125 +477,97 @@ app.post('/traveler/usuarios_full', authenticateToken, (req, res) => {
         return res.status(400).json({ error: 'Invalid input data' });
     }
 
-    db.query('INSERT INTO traveler.usuarios (correo, contrasena, id_rol) VALUES (?, ?, ?)', [correo, contrasena, id_rol], (err, result) => {
+    bcrypt.hash(contrasena, 10, (err, hashedPassword) => {
         if (err) {
-            console.error('Error creating user:', err);
-            return res.status(500).json({ error: 'Error creating user' });
+            console.error('Error hashing password:', err);
+            return res.status(500).json({ error: 'Error hashing password' });
         }
 
-        const id_usuario = result.insertId; 
-
-        db.query('INSERT INTO traveler.caracteristicas_usuarios (id_usuario, nombre, apellido1, apellido2, telefono1, telefono2) VALUES (?, ?, ?, ?, ?, ?)', [id_usuario, nombre, apellido1, apellido2, telefono1, telefono2], (err) => {
+        db.query('INSERT INTO traveler.usuarios (correo, contrasena, id_rol) VALUES (?, ?, ?)', [correo, hashedPassword, id_rol], (err, result) => {
             if (err) {
-                console.error('Error creating user characteristics:', err);
-                return res.status(500).json({ error: 'Error creating user characteristics' });
+                console.error('Error creating user:', err);
+                return res.status(500).json({ error: 'Error creating user' });
             }
-            res.status(201).json({ id: id_usuario });
+
+            const id_usuario = result.insertId;
+
+            db.query(
+                'INSERT INTO traveler.caracteristicas_usuarios (id_usuario, nombre, apellido1, apellido2, telefono1, telefono2) VALUES (?, ?, ?, ?, ?, ?)',
+                [id_usuario, nombre, apellido1, apellido2, telefono1, telefono2],
+                (err) => {
+                    if (err) {
+                        console.error('Error creating user characteristics:', err);
+                        return res.status(500).json({ error: 'Error creating user characteristics' });
+                    }
+
+                    res.status(201).json({ id: id_usuario });
+                }
+            );
         });
     });
 });
-
 
 /**
  * @swagger
  * /traveler/usuarios_full/{id}:
  *   put:
- *     summary: Update a user's full details by ID
- *     description: Updates a user's email, password, role, and personal characteristics by their ID. Requires authentication.
- *     tags:
- *       - Usuarios
+ *     summary: Actualizar un usuario completo
+ *     description: Actualiza los datos de un usuario y sus características asociadas.
+ *     tags: [Usuarios]
  *     security:
  *       - BearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
  *         required: true
- *         description: The ID of the user to update.
  *         schema:
  *           type: integer
- *           example: 1
+ *         description: ID del usuario a actualizar
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
- *             required:
- *               - correo
- *               - contrasena
- *               - id_rol
- *               - nombre
- *               - apellido1
- *               - apellido2
- *               - telefono1
  *             properties:
  *               correo:
  *                 type: string
- *                 description: The user's email.
- *                 example: user@example.com
+ *                 description: Correo del usuario
  *               contrasena:
  *                 type: string
- *                 description: The user's password.
- *                 example: password123
+ *                 description: Contraseña del usuario
  *               id_rol:
  *                 type: integer
- *                 description: The role ID of the user.
- *                 example: 2
+ *                 description: ID del rol del usuario
  *               nombre:
  *                 type: string
- *                 description: The user's first name.
- *                 example: John
+ *                 description: Nombre del usuario
  *               apellido1:
  *                 type: string
- *                 description: The user's first surname.
- *                 example: Doe
+ *                 description: Primer apellido del usuario
  *               apellido2:
  *                 type: string
- *                 description: The user's second surname.
- *                 example: Smith
+ *                 description: Segundo apellido del usuario
  *               telefono1:
  *                 type: string
- *                 description: The user's primary phone number.
- *                 example: "+123456789"
+ *                 description: Teléfono principal del usuario
  *               telefono2:
  *                 type: string
- *                 description: The user's secondary phone number (optional).
- *                 example: "+987654321"
+ *                 description: Teléfono secundario del usuario
  *     responses:
  *       200:
- *         description: User updated successfully.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
+ *         description: Usuario actualizado exitosamente
+ *       400:
+ *         description: Datos de entrada inválidos
  *       404:
- *         description: User not found.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 error:
- *                   type: string
- *                   example: User not found.
+ *         description: Usuario no encontrado
  *       500:
- *         description: Error updating user or user characteristics.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 error:
- *                   type: string
- *                   example: Error updating user.
+ *         description: Error al actualizar el usuario
  */
 app.put('/traveler/usuarios_full/:id', authenticateToken, (req, res) => {
     const { id } = req.params;
     const { correo, contrasena, id_rol, nombre, apellido1, apellido2, telefono1, telefono2 } = req.body;
+
     db.query(`SELECT * FROM traveler.usuarios WHERE id_usuario = ?`, [id], (err, results) => {
         if (err) {
             console.error('Error fetching user:', err);
@@ -610,25 +577,112 @@ app.put('/traveler/usuarios_full/:id', authenticateToken, (req, res) => {
             return res.status(404).json({ error: 'User not found' });
         }
 
-        db.query(`UPDATE traveler.usuarios SET correo = ?, contrasena = ?, id_rol = ? WHERE id_usuario = ?`, [correo, contrasena, id_rol, id], (err) => {
-            if (err) {
-                console.error('Error updating user:', err);
-                return res.status(500).json({ error: 'Error updating user' });
-            }
+        const updateUser = (hashedPassword) => {
+            db.query(
+                `UPDATE traveler.usuarios SET correo = ?, contrasena = ?, id_rol = ? WHERE id_usuario = ?`,
+                [correo, hashedPassword, id_rol, id],
+                (err) => {
+                    if (err) {
+                        console.error('Error updating user:', err);
+                        return res.status(500).json({ error: 'Error updating user' });
+                    }
 
-            db.query(`UPDATE traveler.caracteristicas_usuarios SET nombre = ?, apellido1 = ?, apellido2 = ?, telefono1 = ?, telefono2 = ? WHERE id_usuario = ?`, [nombre, apellido1, apellido2, telefono1, telefono2, id], (err) => {
-                if (err) {
-                    console.error('Error updating user characteristics:', err);
-                    return res.status(500).json({ error: 'Error updating user characteristics' });
+                    db.query(
+                        `UPDATE traveler.caracteristicas_usuarios SET nombre = ?, apellido1 = ?, apellido2 = ?, telefono1 = ?, telefono2 = ? WHERE id_usuario = ?`,
+                        [nombre, apellido1, apellido2, telefono1, telefono2, id],
+                        (err) => {
+                            if (err) {
+                                console.error('Error updating user characteristics:', err);
+                                return res.status(500).json({ error: 'Error updating user characteristics' });
+                            }
+                            res.status(200).json({ success: true });
+                        }
+                    );
                 }
-                res.status(200).json({ success: true });
+            );
+        };
+
+        // Si se proporciona una nueva contraseña, se hashea. Si no, se usa la actual de la base de datos.
+        if (contrasena) {
+            bcrypt.hash(contrasena, 10, (err, hashedPassword) => {
+                if (err) {
+                    console.error('Error hashing password:', err);
+                    return res.status(500).json({ error: 'Error hashing password' });
+                }
+                updateUser(hashedPassword);
             });
-        });
+        } else {
+            // Si no se proporciona una nueva contraseña, se reutiliza la anterior
+            updateUser(results[0].contrasena);
+        }
     });
 });
 
+/**
+ * @swagger
+ * /traveler/usuarios/{id}:
+ *   delete:
+ *     summary: Eliminar un usuario
+ *     description: Elimina un usuario por su ID.
+ *     tags: [Usuarios]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID del usuario a eliminar
+ *     responses:
+ *       200:
+ *         description: Usuario eliminado exitosamente
+ *       404:
+ *         description: Usuario no encontrado
+ *       500:
+ *         description: Error al eliminar el usuario
+ */
+app.delete('/traveler/usuarios/:id', authenticateToken, (req, res) => {
+    const id = req.params.id;
 
+    db.query('DELETE FROM traveler.usuarios WHERE id_usuario = ?', [id], (err, result) => {
+        if (err) {
+            console.error('Error al eliminar usuario:', err);
+            return res.status(500).json({ error: 'Error al eliminar usuario' });
+        }
 
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: 'Usuario no encontrado' });
+        }
+
+        res.status(200).json({ success: true });
+    });
+});
+
+/**
+ * @swagger
+ * /traveler/usuarios_full/{id}:
+ *   get:
+ *     summary: Obtener usuario completo por ID
+ *     description: Obtiene un usuario junto con su rol y características personales.
+ *     tags: [Usuarios]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         description: ID del usuario
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Usuario encontrado
+ *       404:
+ *         description: Usuario no encontrado
+ *       500:
+ *         description: Error al obtener el usuario
+ */
 app.get('/traveler/usuarios_full/:id', authenticateToken, (req, res) => {
     const { id } = req.params;
     db.query(` SELECT u.*, r.nombre_rol, c.nombre, c.apellido1, c.apellido2, c.telefono1, c.telefono2
@@ -648,19 +702,18 @@ app.get('/traveler/usuarios_full/:id', authenticateToken, (req, res) => {
     });
 });
 
-
-
-
 /**
  * @swagger
  * /traveler/usuarios_full:
  *   get:
- *     summary: Get all users with their roles and characteristics
- *     description: Retrieves all users along with their roles and characteristics using a join query.
+ *     summary: Obtener todos los usuarios con detalles completos
+ *     description: Devuelve una lista de todos los usuarios, incluyendo su rol y características personales (nombre, apellidos, teléfonos).
  *     tags: [Usuarios]
+ *     security:
+ *       - BearerAuth: []
  *     responses:
  *       200:
- *         description: Successfully fetched users with roles and characteristics
+ *         description: Lista de usuarios obtenida correctamente
  *         content:
  *           application/json:
  *             schema:
@@ -673,44 +726,24 @@ app.get('/traveler/usuarios_full/:id', authenticateToken, (req, res) => {
  *                     properties:
  *                       id_usuario:
  *                         type: integer
- *                         description: User ID
  *                       correo:
  *                         type: string
- *                         description: User email
- *                       contrasena:
- *                         type: string
- *                         description: User password (hashed)
  *                       id_rol:
  *                         type: integer
- *                         description: Role ID
  *                       nombre_rol:
  *                         type: string
- *                         description: Role name
  *                       nombre:
  *                         type: string
- *                         description: User's first name
  *                       apellido1:
  *                         type: string
- *                         description: User's first surname
  *                       apellido2:
  *                         type: string
- *                         description: User's second surname
  *                       telefono1:
  *                         type: string
- *                         description: User's primary phone number
  *                       telefono2:
  *                         type: string
- *                         description: User's secondary phone number
  *       500:
- *         description: Error fetching users with roles and characteristics
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 error:
- *                   type: string
- *                   description: Error message
+ *         description: Error interno al obtener usuarios
  */
 app.get('/traveler/usuarios_full', authenticateToken, (req, res) => {
     db.query(`
@@ -727,72 +760,31 @@ app.get('/traveler/usuarios_full', authenticateToken, (req, res) => {
     });
 });
 
-
-
-
 /**
  * @swagger
  * /traveler/usuarios/{id}:
  *   get:
- *     summary: Get user by ID
- *     description: Fetches a user by their ID from the database. Requires authentication using a valid JWT token.
- *     tags:
- *       - Usuarios
+ *     summary: Obtener usuario por ID
+ *     description: Devuelve los datos básicos del usuario según su ID.
+ *     tags: [Usuarios]
+ *     security:
+ *       - BearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
  *         required: true
- *         description: The ID of the user to fetch.
+ *         description: ID del usuario
  *         schema:
  *           type: integer
- *           example: 1
  *     responses:
  *       200:
- *         description: Successfully fetched the user.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 usuario:
- *                   type: object
- *                   properties:
- *                     id_usuario:
- *                       type: integer
- *                       description: User ID.
- *                       example: 1
- *                     correo:
- *                       type: string
- *                       description: User email.
- *                       example: user@example.com
- *                     id_rol:
- *                       type: integer
- *                       description: Role ID of the user.
- *                       example: 2
+ *         description: Usuario encontrado
  *       404:
- *         description: User not found.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 error:
- *                   type: string
- *                   example: User not found.
- *       401:
- *         description: Unauthorized - Invalid or missing token.
+ *         description: Usuario no encontrado
  *       500:
- *         description: Internal server error.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 error:
- *                   type: string
- *                   example: Error fetching user.
+ *         description: Error al obtener el usuario
  */
-app.get('/traveler/usuarios/:id', authenticateToken,(req, res) => {
+app.get('/traveler/usuarios/:id', authenticateToken, (req, res) => {
     const { id } = req.params;
     db.query('SELECT * FROM traveler.usuarios WHERE id_usuario = ?', [id], (err, results) => {
         if (err) {
@@ -810,75 +802,60 @@ app.get('/traveler/usuarios/:id', authenticateToken,(req, res) => {
  * @swagger
  * /traveler/usuarios:
  *   post:
- *     summary: Create a new user
- *     description: Adds a new user to the database. Requires authentication.
- *     tags:
- *       - Usuarios
+ *     summary: Crear usuario
+ *     description: Crea un nuevo usuario con correo, contraseña e ID de rol.
+ *     tags: [Usuarios]
+ *     security:
+ *       - BearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
+ *             required:
+ *               - correo
+ *               - contrasena
+ *               - id_rol
  *             properties:
  *               correo:
  *                 type: string
- *                 description: Email of the user.
- *                 example: user@example.com
+ *                 example: ejemplo@correo.com
  *               contrasena:
  *                 type: string
- *                 description: Password of the user.
- *                 example: password123
+ *                 example: miContrasenaSegura
  *               id_rol:
  *                 type: integer
- *                 description: Role ID of the user.
  *                 example: 2
  *     responses:
  *       201:
- *         description: User created successfully.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 id:
- *                   type: integer
- *                   description: The ID of the created user.
- *                   example: 1
+ *         description: Usuario creado exitosamente
  *       400:
- *         description: Bad Request - Missing or invalid data.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 error:
- *                   type: string
- *                   example: Invalid input data.
+ *         description: Datos de entrada inválidos
  *       500:
- *         description: Error creating user.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 error:
- *                   type: string
- *                   example: Error creating user.
+ *         description: Error al crear el usuario
  */
-app.post('/traveler/usuarios', authenticateToken,(req, res) => {
+app.post('/traveler/usuarios', authenticateToken, (req, res) => {
     const { correo, contrasena, id_rol } = req.body;
 
     if (!correo || !contrasena || !id_rol) {
         return res.status(400).json({ error: 'Invalid input data' });
     }
 
-    db.query('INSERT INTO traveler.usuarios (correo, contrasena, id_rol) VALUES (?, ?, ?)', [correo, contrasena, id_rol], (err, result) => {
+    bcrypt.hash(contrasena, 10, (err, hashedPassword) => {
         if (err) {
-            console.error('Error creating user:', err);
-            return res.status(500).json({ error: 'Error creating user' });
+            console.error('Error hashing password:', err);
+            return res.status(500).json({ error: 'Error hashing password' });
         }
-        res.status(201).json({ id: result.insertId });
+
+        const query = 'INSERT INTO traveler.usuarios (correo, contrasena, id_rol) VALUES (?, ?, ?)';
+        db.query(query, [correo, hashedPassword, id_rol], (err, result) => {
+            if (err) {
+                console.error('Error creating user:', err);
+                return res.status(500).json({ error: 'Error creating user' });
+            }
+            res.status(201).json({ id: result.insertId });
+        });
     });
 });
 
@@ -886,17 +863,18 @@ app.post('/traveler/usuarios', authenticateToken,(req, res) => {
  * @swagger
  * /traveler/usuarios/{id}:
  *   put:
- *     summary: Actualizar usuario por ID
- *     description: Permite actualizar los datos de un usuario (correo, contraseña o rol) mediante su ID. Requiere autenticación JWT.
- *     tags:
- *       - Usuarios
+ *     summary: Actualizar usuario
+ *     description: Actualiza los campos del usuario (correo, contraseña, rol).
+ *     tags: [Usuarios]
+ *     security:
+ *       - BearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
  *         required: true
+ *         description: ID del usuario
  *         schema:
  *           type: integer
- *           example: 1
  *     requestBody:
  *       required: true
  *       content:
@@ -906,34 +884,24 @@ app.post('/traveler/usuarios', authenticateToken,(req, res) => {
  *             properties:
  *               correo:
  *                 type: string
- *                 example: updated@example.com
+ *                 example: nuevo@correo.com
  *               contrasena:
  *                 type: string
- *                 example: newpassword123
+ *                 example: nuevaContrasena
  *               id_rol:
  *                 type: integer
- *                 example: 2
+ *                 example: 3
  *     responses:
  *       200:
- *         description: Usuario actualizado correctamente
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
+ *         description: Usuario actualizado exitosamente
  *       400:
- *         description: Solicitud inválida
- *       401:
- *         description: No autorizado, token inválido
+ *         description: Datos inválidos o faltantes
  *       404:
  *         description: Usuario no encontrado
  *       500:
- *         description: Error interno del servidor
+ *         description: Error al actualizar el usuario
  */
-app.put('/traveler/usuarios/:id', authenticateToken,(req, res) => {
+app.put('/traveler/usuarios/:id', authenticateToken, (req, res) => {
     const id = req.params.id;
     const { correo, contrasena, id_rol } = req.body;
 
@@ -943,6 +911,28 @@ app.put('/traveler/usuarios/:id', authenticateToken,(req, res) => {
 
     const updates = [];
     const params = [];
+
+    const proceedUpdate = () => {
+        if (updates.length === 0) {
+            return res.status(400).json({ error: 'No hay datos para actualizar' });
+        }
+
+        params.push(id);
+        const query = `UPDATE traveler.usuarios SET ${updates.join(', ')} WHERE id_usuario = ?`;
+
+        db.query(query, params, (err, result) => {
+            if (err) {
+                console.error('Error al actualizar usuario:', err);
+                return res.status(500).json({ error: 'Error al actualizar usuario' });
+            }
+
+            if (result.affectedRows === 0) {
+                return res.status(404).json({ error: 'Usuario no encontrado' });
+            }
+
+            res.status(200).json({ success: true });
+        });
+    };
 
     if (correo) {
         updates.push('correo = ?');
@@ -963,96 +953,29 @@ app.put('/traveler/usuarios/:id', authenticateToken,(req, res) => {
 
             updates.push('contrasena = ?');
             params.push(hashedPassword);
-            finalizeUpdate();
+            proceedUpdate();
         });
     } else {
-        finalizeUpdate();
-    }
-
-    function finalizeUpdate() {
-        params.push(id);
-        const query = `UPDATE traveler.usuarios SET ${updates.join(', ')} WHERE id_usuario = ?`;
-
-        db.query(query, params, (err, result) => {
-            if (err) {
-                console.error('Error al actualizar usuario:', err);
-                return res.status(500).json({ error: 'Error al actualizar usuario' });
-            }
-
-            if (result.affectedRows === 0) {
-                return res.status(404).json({ error: 'Usuario no encontrado' });
-            }
-
-            res.status(200).json({ success: true });
-        });
+        proceedUpdate();
     }
 });
 
-/**
- * @swagger
- * /traveler/usuarios/{id}:
- *   delete:
- *     summary: Eliminar usuario por ID
- *     description: Elimina un usuario de la base de datos utilizando su ID. Requiere autenticación JWT.
- *     tags:
- *       - Usuarios
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *           example: 1
- *     responses:
- *       200:
- *         description: Usuario eliminado correctamente
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *       404:
- *         description: Usuario no encontrado
- *       401:
- *         description: No autorizado, token inválido
- *       500:
- *         description: Error interno del servidor
- */
-app.delete('/traveler/usuarios/:id', authenticateToken,(req, res) => {
-    const id = req.params.id;
 
-    db.query('DELETE FROM traveler.usuarios WHERE id_usuario = ?', [id], (err, result) => {
-        if (err) {
-            console.error('Error al eliminar usuario:', err);
-            return res.status(500).json({ error: 'Error al eliminar usuario' });
-        }
 
-        if (result.affectedRows === 0) {
-            return res.status(404).json({ error: 'Usuario no encontrado' });
-        }
 
-        res.status(200).json({ success: true });
-    });
-});
 
 
 
 // Roles
-
 /**
  * @swagger
  * /traveler/roles:
  *   get:
  *     summary: Obtener todos los roles
- *     description: Recupera una lista de todos los roles disponibles en la base de datos. Requiere autenticación JWT.
- *     tags:
- *       - Roles
+ *     tags: [Roles]
  *     responses:
  *       200:
- *         description: Lista de roles obtenida con éxito
+ *         description: Lista de roles obtenida correctamente
  *         content:
  *           application/json:
  *             schema:
@@ -1065,14 +988,10 @@ app.delete('/traveler/usuarios/:id', authenticateToken,(req, res) => {
  *                     properties:
  *                       id_rol:
  *                         type: integer
- *                         example: 1
- *                       nombre:
+ *                       nombre_rol:
  *                         type: string
- *                         example: "Administrador"
- *       401:
- *         description: No autorizado, token inválido
  *       500:
- *         description: Error interno del servidor
+ *         description: Error interno al obtener roles
  */
 app.get('/traveler/roles', (req, res) => {
     db.query('SELECT * FROM traveler.roles', (err, results) => {
@@ -1089,20 +1008,18 @@ app.get('/traveler/roles', (req, res) => {
  * @swagger
  * /traveler/roles/{id}:
  *   get:
- *     summary: Obtener rol por ID
- *     description: Recupera un rol por su ID. Requiere autenticación JWT.
+ *     summary: Obtener un rol por ID
+ *     tags: [Roles]
  *     parameters:
  *       - in: path
  *         name: id
  *         required: true
  *         schema:
  *           type: integer
- *           example: 1
- *     tags:
- *       - Roles
+ *         description: ID del rol
  *     responses:
  *       200:
- *         description: Rol obtenido con éxito
+ *         description: Rol encontrado
  *         content:
  *           application/json:
  *             schema:
@@ -1113,20 +1030,15 @@ app.get('/traveler/roles', (req, res) => {
  *                   properties:
  *                     id_rol:
  *                       type: integer
- *                       example: 1
- *                     nombre:
+ *                     nombre_rol:
  *                       type: string
- *                       example: "Administrador"
  *       404:
  *         description: Rol no encontrado
- *       401:
- *         description: No autorizado, token inválido
  *       500:
- *         description: Error interno del servidor
+ *         description: Error al obtener el rol
  */
 app.get('/traveler/roles/:id', (req, res) => {
     const id = req.params.id;
-    console.log("Fetching role with ID:", id); 
 
     db.query('SELECT * FROM traveler.roles WHERE id_rol = ?', [id], (err, results) => {
         if (err) {
@@ -1147,22 +1059,23 @@ app.get('/traveler/roles/:id', (req, res) => {
  * /traveler/roles:
  *   post:
  *     summary: Crear un nuevo rol
- *     description: Crea un nuevo rol en la base de datos. Requiere autenticación JWT.
+ *     tags: [Roles]
+ *     security:
+ *       - BearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
+ *             required:
+ *               - nombre_rol
  *             properties:
  *               nombre_rol:
  *                 type: string
- *                 example: "Administrador"
- *     tags:
- *       - Roles
  *     responses:
  *       200:
- *         description: Rol creado con éxito
+ *         description: Rol creado correctamente
  *         content:
  *           application/json:
  *             schema:
@@ -1170,18 +1083,15 @@ app.get('/traveler/roles/:id', (req, res) => {
  *               properties:
  *                 message:
  *                   type: string
- *                   example: "Role created successfully"
  *                 id:
  *                   type: integer
- *                   example: 1
- *       401:
- *         description: No autorizado, token inválido
+ *       400:
+ *         description: Datos inválidos
  *       500:
- *         description: Error interno del servidor
+ *         description: Error al crear el rol
  */
-app.post('/traveler/roles', authenticateToken,(req, res) => {
+app.post('/traveler/roles', authenticateToken, (req, res) => {
     const { nombre_rol } = req.body;
-    console.log("Received role name:", nombre_rol);  
 
     if (!nombre_rol) {
         return res.status(400).json({ error: 'Role name is required' });
@@ -1205,14 +1115,16 @@ app.post('/traveler/roles', authenticateToken,(req, res) => {
  * /traveler/roles/{id}:
  *   put:
  *     summary: Actualizar un rol por ID
- *     description: Actualiza el nombre de un rol por su ID. Requiere autenticación JWT.
+ *     tags: [Roles]
+ *     security:
+ *       - BearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
  *         required: true
  *         schema:
  *           type: integer
- *           example: 1
+ *         description: ID del rol
  *     requestBody:
  *       required: true
  *       content:
@@ -1222,20 +1134,13 @@ app.post('/traveler/roles', authenticateToken,(req, res) => {
  *             properties:
  *               nombre_rol:
  *                 type: string
- *                 example: "Administrador"
- *     tags:
- *       - Roles
  *     responses:
  *       200:
- *         description: Rol actualizado con éxito
- *       400:
- *         description: Solicitud incorrecta
- *       401:
- *         description: No autorizado, token inválido
+ *         description: Rol actualizado correctamente
  *       500:
- *         description: Error interno del servidor
+ *         description: Error al actualizar el rol
  */
-app.put('/traveler/roles/:id', authenticateToken,(req, res) => {
+app.put('/traveler/roles/:id', authenticateToken, (req, res) => {
     const id = req.params.id;
     const { nombre_rol } = req.body;
     db.query('UPDATE traveler.roles SET nombre_rol = ? WHERE id_rol = ?', [nombre_rol, id], (err, result) => {
@@ -1252,28 +1157,24 @@ app.put('/traveler/roles/:id', authenticateToken,(req, res) => {
  * @swagger
  * /traveler/roles/{id}:
  *   delete:
- *     summary: Eliminar rol por ID
- *     description: Elimina un rol de la base de datos por su ID. Requiere autenticación JWT.
+ *     summary: Eliminar un rol por ID
+ *     tags: [Roles]
+ *     security:
+ *       - BearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
  *         required: true
  *         schema:
  *           type: integer
- *           example: 1
- *     tags:
- *       - Roles
+ *         description: ID del rol
  *     responses:
  *       200:
- *         description: Rol eliminado con éxito
- *       404:
- *         description: Rol no encontrado
- *       401:
- *         description: No autorizado, token inválido
+ *         description: Rol eliminado correctamente
  *       500:
- *         description: Error interno del servidor
+ *         description: Error al eliminar el rol
  */
-app.delete('/traveler/roles/:id', authenticateToken,(req, res) => {
+app.delete('/traveler/roles/:id', authenticateToken, (req, res) => {
     const id = req.params.id;
     db.query('DELETE FROM traveler.roles WHERE id_rol = ?', [id], (err, result) => {
         if (err) {
@@ -1288,19 +1189,21 @@ app.delete('/traveler/roles/:id', authenticateToken,(req, res) => {
 
 
 
-// Caracteristicas Usuarios
 
+
+
+// Caracteristicas Usuarios
 /**
  * @swagger
  * /traveler/caracteristicas_usuarios:
  *   get:
- *     summary: Obtener todas las características de los usuarios
- *     description: Recupera una lista de todas las características de los usuarios disponibles en la base de datos. Requiere autenticación JWT.
- *     tags:
- *       - Caracteristicas Usuarios
+ *     summary: Obtener todas las características de usuarios
+ *     tags: [Características Usuarios]
+ *     security:
+ *       - BearerAuth: []
  *     responses:
  *       200:
- *         description: Lista de características de usuarios obtenida con éxito
+ *         description: Lista de características obtenida correctamente
  *         content:
  *           application/json:
  *             schema:
@@ -1313,28 +1216,20 @@ app.delete('/traveler/roles/:id', authenticateToken,(req, res) => {
  *                     properties:
  *                       id_usuario:
  *                         type: integer
- *                         example: 1
  *                       nombre:
  *                         type: string
- *                         example: "Juan"
  *                       apellido1:
  *                         type: string
- *                         example: "Pérez"
  *                       apellido2:
  *                         type: string
- *                         example: "Gómez"
  *                       telefono1:
  *                         type: string
- *                         example: "+123456789"
  *                       telefono2:
  *                         type: string
- *                         example: "+987654321"
- *       401:
- *         description: No autorizado, token inválido
  *       500:
- *         description: Error interno del servidor
+ *         description: Error interno al obtener las características
  */
-app.get('/traveler/caracteristicas_usuarios', authenticateToken,(req, res) => {
+app.get('/traveler/caracteristicas_usuarios', authenticateToken, (req, res) => {
     db.query('SELECT * FROM traveler.caracteristicas_usuarios', (err, results) => {
         if (err) {
             console.error('Error fetching caracteristicas_usuarios:', err);
@@ -1349,20 +1244,20 @@ app.get('/traveler/caracteristicas_usuarios', authenticateToken,(req, res) => {
  * @swagger
  * /traveler/caracteristicas_usuarios/{id}:
  *   get:
- *     summary: Obtener características de usuario por ID
- *     description: Recupera las características de un usuario por su ID. Requiere autenticación JWT.
+ *     summary: Obtener una característica de usuario por ID
+ *     tags: [Características Usuarios]
+ *     security:
+ *       - BearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
  *         required: true
  *         schema:
  *           type: integer
- *           example: 1
- *     tags:
- *       - Caracteristicas Usuarios
+ *         description: ID del usuario
  *     responses:
  *       200:
- *         description: Características de usuario obtenidas con éxito
+ *         description: Característica encontrada
  *         content:
  *           application/json:
  *             schema:
@@ -1373,32 +1268,23 @@ app.get('/traveler/caracteristicas_usuarios', authenticateToken,(req, res) => {
  *                   properties:
  *                     id_usuario:
  *                       type: integer
- *                       example: 1
  *                     nombre:
  *                       type: string
- *                       example: "Juan"
  *                     apellido1:
  *                       type: string
- *                       example: "Pérez"
  *                     apellido2:
  *                       type: string
- *                       example: "Gómez"
  *                     telefono1:
  *                       type: string
- *                       example: "+123456789"
  *                     telefono2:
  *                       type: string
- *                       example: "+987654321"
  *       404:
- *         description: Característica de usuario no encontrada
- *       401:
- *         description: No autorizado, token inválido
+ *         description: Característica no encontrada
  *       500:
- *         description: Error interno del servidor
+ *         description: Error al obtener la característica
  */
-app.get('/traveler/caracteristicas_usuarios/:id', authenticateToken,(req, res) => {
+app.get('/traveler/caracteristicas_usuarios/:id', authenticateToken, (req, res) => {
     const id_usuario = req.params.id;
-    console.log("Fetching caracteristicas_usuarios with ID:", id_usuario); 
 
     db.query('SELECT * FROM traveler.caracteristicas_usuarios WHERE id_usuario = ?', [id_usuario], (err, results) => {
         if (err) {
@@ -1419,54 +1305,46 @@ app.get('/traveler/caracteristicas_usuarios/:id', authenticateToken,(req, res) =
  * /traveler/caracteristicas_usuarios:
  *   post:
  *     summary: Crear una nueva característica de usuario
- *     description: Crea una nueva característica de usuario en la base de datos. Requiere autenticación JWT.
+ *     tags: [Características Usuarios]
+ *     security:
+ *       - BearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
+ *             required:
+ *               - id_usuario
  *             properties:
  *               id_usuario:
  *                 type: integer
- *                 example: 1
  *               nombre:
  *                 type: string
- *                 example: "Juan"
  *               apellido1:
  *                 type: string
- *                 example: "Pérez"
  *               apellido2:
  *                 type: string
- *                 example: "Gómez"
  *               telefono1:
  *                 type: string
- *                 example: "+123456789"
  *               telefono2:
  *                 type: string
- *                 example: "+987654321"
- *     tags:
- *       - Caracteristicas Usuarios
  *     responses:
  *       200:
- *         description: Característica de usuario creada con éxito
+ *         description: Característica creada correctamente
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
- *                 message:
- *                   type: string
- *                   example: "Característica de usuario creada correctamente"
  *                 id:
  *                   type: integer
- *                   example: 1
- *       401:
- *         description: No autorizado, token inválido
+ *                 message:
+ *                   type: string
  *       500:
- *         description: Error interno del servidor
+ *         description: Error al crear la característica
  */
-app.post('/traveler/caracteristicas_usuarios', authenticateToken,(req, res) => {
+app.post('/traveler/caracteristicas_usuarios', authenticateToken, (req, res) => {
     const { id_usuario, nombre, apellido1, apellido2, telefono1, telefono2 } = req.body;
 
     db.query(
@@ -1494,15 +1372,17 @@ app.post('/traveler/caracteristicas_usuarios', authenticateToken,(req, res) => {
  * @swagger
  * /traveler/caracteristicas_usuarios/{id}:
  *   put:
- *     summary: Actualizar características de usuario por ID
- *     description: Actualiza las características de un usuario por su ID. Requiere autenticación JWT.
+ *     summary: Actualizar una característica de usuario por ID
+ *     tags: [Características Usuarios]
+ *     security:
+ *       - BearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
  *         required: true
  *         schema:
  *           type: integer
- *           example: 1
+ *         description: ID del usuario
  *     requestBody:
  *       required: true
  *       content:
@@ -1512,32 +1392,21 @@ app.post('/traveler/caracteristicas_usuarios', authenticateToken,(req, res) => {
  *             properties:
  *               nombre:
  *                 type: string
- *                 example: "Juan"
  *               apellido1:
  *                 type: string
- *                 example: "Pérez"
  *               apellido2:
  *                 type: string
- *                 example: "Gómez"
  *               telefono1:
  *                 type: string
- *                 example: "+123456789"
  *               telefono2:
  *                 type: string
- *                 example: "+987654321"
- *     tags:
- *       - Caracteristicas Usuarios
  *     responses:
  *       200:
- *         description: Característica de usuario actualizada con éxito
- *       400:
- *         description: Solicitud incorrecta
- *       401:
- *         description: No autorizado, token inválido
+ *         description: Característica actualizada correctamente
  *       500:
- *         description: Error interno del servidor
+ *         description: Error al actualizar la característica
  */
-app.put('/traveler/caracteristicas_usuarios/:id', authenticateToken,(req, res) => {
+app.put('/traveler/caracteristicas_usuarios/:id', authenticateToken, (req, res) => {
     const id_usuario = req.params.id;
     const { nombre, apellido1, apellido2, telefono1, telefono2 } = req.body;
     db.query(
@@ -1558,28 +1427,24 @@ app.put('/traveler/caracteristicas_usuarios/:id', authenticateToken,(req, res) =
  * @swagger
  * /traveler/caracteristicas_usuarios/{id}:
  *   delete:
- *     summary: Eliminar características de usuario por ID
- *     description: Elimina las características de un usuario por su ID. Requiere autenticación JWT.
+ *     summary: Eliminar una característica de usuario por ID
+ *     tags: [Características Usuarios]
+ *     security:
+ *       - BearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
  *         required: true
  *         schema:
  *           type: integer
- *           example: 1
- *     tags:
- *       - Caracteristicas Usuarios
+ *         description: ID del usuario
  *     responses:
  *       200:
- *         description: Característica de usuario eliminada con éxito
- *       404:
- *         description: Característica de usuario no encontrada
- *       401:
- *         description: No autorizado, token inválido
+ *         description: Característica eliminada correctamente
  *       500:
- *         description: Error interno del servidor
+ *         description: Error al eliminar la característica
  */
-app.delete('/traveler/caracteristicas_usuarios/:id', authenticateToken,(req, res) => {
+app.delete('/traveler/caracteristicas_usuarios/:id', authenticateToken, (req, res) => {
     const id_usuario = req.params.id;
     db.query('DELETE FROM traveler.caracteristicas_usuarios WHERE id_usuario = ?', [id_usuario], (err, result) => {
         if (err) {
@@ -1593,20 +1458,20 @@ app.delete('/traveler/caracteristicas_usuarios/:id', authenticateToken,(req, res
 
 
 
-// Destinos
 
+
+
+
+// Destinos
 /**
  * @swagger
  * /traveler/destinos:
  *   get:
- *     summary: Get all destinos
- *     description: Fetches all the destinos from the database.
+ *     summary: Obtener todos los destinos
  *     tags: [Destinos]
- *     security:
- *       - BearerAuth: []
  *     responses:
  *       200:
- *         description: A list of all destinos
+ *         description: Lista de destinos obtenida correctamente
  *         content:
  *           application/json:
  *             schema:
@@ -1624,12 +1489,8 @@ app.delete('/traveler/caracteristicas_usuarios/:id', authenticateToken,(req, res
  *                       ciudad:
  *                         type: string
  *       500:
- *         description: Error fetching destinos
- *       401:
- *         description: Unauthorized access
+ *         description: Error interno al obtener los destinos
  */
-
-
 app.get('/traveler/destinos', (req, res) => {
     db.query('SELECT * FROM traveler.destinos', (err, results) => {
         if (err) {
@@ -1645,21 +1506,18 @@ app.get('/traveler/destinos', (req, res) => {
  * @swagger
  * /traveler/destinos/{id}:
  *   get:
- *     summary: Get a destino by ID
- *     description: Fetch a specific destino from the database using its ID.
+ *     summary: Obtener un destino por ID
  *     tags: [Destinos]
  *     parameters:
- *       - name: id
- *         in: path
+ *       - in: path
+ *         name: id
  *         required: true
- *         description: The ID of the destino to fetch.
  *         schema:
  *           type: integer
- *     security:
- *       - BearerAuth: []
+ *         description: ID del destino
  *     responses:
  *       200:
- *         description: A specific destino
+ *         description: Destino encontrado
  *         content:
  *           application/json:
  *             schema:
@@ -1675,15 +1533,12 @@ app.get('/traveler/destinos', (req, res) => {
  *                     ciudad:
  *                       type: string
  *       404:
- *         description: Destino not found
+ *         description: Destino no encontrado
  *       500:
- *         description: Error fetching destino
- *       401:
- *         description: Unauthorized access
+ *         description: Error al obtener el destino
  */
 app.get('/traveler/destinos/:id', (req, res) => {
     const id = req.params.id;
-    console.log("Fetching destino with ID:", id); 
 
     db.query('SELECT * FROM traveler.destinos WHERE id_destino = ?', [id], (err, results) => {
         if (err) {
@@ -1703,8 +1558,7 @@ app.get('/traveler/destinos/:id', (req, res) => {
  * @swagger
  * /traveler/destinos:
  *   post:
- *     summary: Create a new destino
- *     description: Adds a new destino (country and city) to the database.
+ *     summary: Crear un nuevo destino
  *     tags: [Destinos]
  *     security:
  *       - BearerAuth: []
@@ -1714,16 +1568,17 @@ app.get('/traveler/destinos/:id', (req, res) => {
  *         application/json:
  *           schema:
  *             type: object
+ *             required:
+ *               - pais
+ *               - ciudad
  *             properties:
  *               pais:
  *                 type: string
- *                 example: "Spain"
  *               ciudad:
  *                 type: string
- *                 example: "Barcelona"
  *     responses:
  *       200:
- *         description: The newly created destino ID
+ *         description: Destino creado correctamente
  *         content:
  *           application/json:
  *             schema:
@@ -1732,9 +1587,7 @@ app.get('/traveler/destinos/:id', (req, res) => {
  *                 id:
  *                   type: integer
  *       500:
- *         description: Error creating destino
- *       401:
- *         description: Unauthorized access
+ *         description: Error al crear el destino
  */
 app.post('/traveler/destinos', authenticateToken, (req, res) => {
     const { pais, ciudad } = req.body;
@@ -1752,16 +1605,17 @@ app.post('/traveler/destinos', authenticateToken, (req, res) => {
  * @swagger
  * /traveler/destinos/{id}:
  *   put:
- *     summary: Update a destino by ID
- *     description: Updates the details of a specific destino identified by its ID.
+ *     summary: Actualizar un destino por ID
  *     tags: [Destinos]
+ *     security:
+ *       - BearerAuth: []
  *     parameters:
- *       - name: id
- *         in: path
+ *       - in: path
+ *         name: id
  *         required: true
- *         description: The ID of the destino to update
  *         schema:
  *           type: integer
+ *         description: ID del destino
  *     requestBody:
  *       required: true
  *       content:
@@ -1771,28 +1625,15 @@ app.post('/traveler/destinos', authenticateToken, (req, res) => {
  *             properties:
  *               pais:
  *                 type: string
- *                 example: "France"
  *               ciudad:
  *                 type: string
- *                 example: "Paris"
- *     security:
- *       - BearerAuth: []
  *     responses:
  *       200:
- *         description: Successful update
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
+ *         description: Destino actualizado correctamente
  *       500:
- *         description: Error updating destino
- *       401:
- *         description: Unauthorized access
+ *         description: Error al actualizar el destino
  */
-app.put('/traveler/destinos/:id', authenticateToken,(req, res) => {
+app.put('/traveler/destinos/:id', authenticateToken, (req, res) => {
     const id = req.params.id;
     const { pais, ciudad } = req.body;
     db.query('UPDATE traveler.destinos SET pais = ?, ciudad = ? WHERE id_destino = ?', [pais, ciudad, id], (err, result) => {
@@ -1809,34 +1650,24 @@ app.put('/traveler/destinos/:id', authenticateToken,(req, res) => {
  * @swagger
  * /traveler/destinos/{id}:
  *   delete:
- *     summary: Delete a destino by ID
- *     description: Deletes a specific destino identified by its ID from the database.
+ *     summary: Eliminar un destino por ID
  *     tags: [Destinos]
- *     parameters:
- *       - name: id
- *         in: path
- *         required: true
- *         description: The ID of the destino to delete
- *         schema:
- *           type: integer
  *     security:
  *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID del destino
  *     responses:
  *       200:
- *         description: Successful deletion
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
+ *         description: Destino eliminado correctamente
  *       500:
- *         description: Error deleting destino
- *       401:
- *         description: Unauthorized access
+ *         description: Error al eliminar el destino
  */
-app.delete('/traveler/destinos/:id', authenticateToken,(req, res) => {
+app.delete('/traveler/destinos/:id', authenticateToken, (req, res) => {
     const id = req.params.id;
     db.query('DELETE FROM traveler.destinos WHERE id_destino = ?', [id], (err, result) => {
         if (err) {
@@ -1851,20 +1682,19 @@ app.delete('/traveler/destinos/:id', authenticateToken,(req, res) => {
 
 
 
-// Tipo Actividad
 
+
+
+// Tipo Actividad
 /**
  * @swagger
- * tags:
- *   - Tipo Actividad
  * /traveler/tipo_actividad:
  *   get:
- *     summary: Retrieve all tipo_actividad records
- *     description: Fetches a list of all tipo_actividad from the database.
+ *     summary: Obtener todos los tipos de actividad
  *     tags: [Tipo Actividad]
  *     responses:
  *       200:
- *         description: List of tipo_actividad records
+ *         description: Lista de tipos de actividad obtenida correctamente
  *         content:
  *           application/json:
  *             schema:
@@ -1877,12 +1707,10 @@ app.delete('/traveler/destinos/:id', authenticateToken,(req, res) => {
  *                     properties:
  *                       id_tipo_actividad:
  *                         type: integer
- *                         description: The ID of the tipo_actividad
  *                       nombre_tipo_actividad:
  *                         type: string
- *                         description: The name of the tipo_actividad
  *       500:
- *         description: Error fetching tipo_actividad
+ *         description: Error interno al obtener los tipos de actividad
  */
 app.get('/traveler/tipo_actividad', (req, res) => {
     db.query('SELECT * FROM traveler.tipo_actividad', (err, results) => {
@@ -1897,23 +1725,20 @@ app.get('/traveler/tipo_actividad', (req, res) => {
 
 /**
  * @swagger
- * tags:
- *   - Tipo Actividad
  * /traveler/tipo_actividad/{id}:
  *   get:
- *     summary: Retrieve tipo_actividad by ID
- *     description: Fetches a tipo_actividad record by its ID.
+ *     summary: Obtener un tipo de actividad por ID
  *     tags: [Tipo Actividad]
  *     parameters:
  *       - in: path
  *         name: id
  *         required: true
- *         description: ID of the tipo_actividad
  *         schema:
  *           type: integer
+ *         description: ID del tipo de actividad
  *     responses:
  *       200:
- *         description: tipo_actividad record
+ *         description: Tipo de actividad encontrado
  *         content:
  *           application/json:
  *             schema:
@@ -1924,18 +1749,15 @@ app.get('/traveler/tipo_actividad', (req, res) => {
  *                   properties:
  *                     id_tipo_actividad:
  *                       type: integer
- *                       description: The ID of the tipo_actividad
  *                     nombre_tipo_actividad:
  *                       type: string
- *                       description: The name of the tipo_actividad
  *       404:
- *         description: tipo_actividad not found
+ *         description: Tipo de actividad no encontrado
  *       500:
- *         description: Error fetching tipo_actividad
+ *         description: Error al obtener el tipo de actividad
  */
 app.get('/traveler/tipo_actividad/:id', (req, res) => {
     const id = req.params.id;
-    console.log("Fetching tipo_actividad with ID:", id);
 
     db.query('SELECT * FROM traveler.tipo_actividad WHERE id_tipo_actividad = ?', [id], (err, results) => {
         if (err) {
@@ -1953,26 +1775,26 @@ app.get('/traveler/tipo_actividad/:id', (req, res) => {
 
 /**
  * @swagger
- * tags:
- *   - Tipo Actividad
  * /traveler/tipo_actividad:
  *   post:
- *     summary: Create a new tipo_actividad
- *     description: Creates a new tipo_actividad record in the database.
+ *     summary: Crear un nuevo tipo de actividad
  *     tags: [Tipo Actividad]
+ *     security:
+ *       - BearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
+ *             required:
+ *               - nombre_tipo_actividad
  *             properties:
  *               nombre_tipo_actividad:
  *                 type: string
- *                 description: The name of the tipo_actividad
  *     responses:
  *       200:
- *         description: tipo_actividad created successfully
+ *         description: Tipo de actividad creado correctamente
  *         content:
  *           application/json:
  *             schema:
@@ -1980,11 +1802,10 @@ app.get('/traveler/tipo_actividad/:id', (req, res) => {
  *               properties:
  *                 id:
  *                   type: integer
- *                   description: The ID of the newly created tipo_actividad
  *       500:
- *         description: Error creating tipo_actividad
+ *         description: Error al crear el tipo de actividad
  */
-app.post('/traveler/tipo_actividad', authenticateToken,(req, res) => {
+app.post('/traveler/tipo_actividad', authenticateToken, (req, res) => {
     const { nombre_tipo_actividad } = req.body;
     db.query('INSERT INTO traveler.tipo_actividad (nombre_tipo_actividad) VALUES (?)', [nombre_tipo_actividad], (err, result) => {
         if (err) {
@@ -1998,20 +1819,19 @@ app.post('/traveler/tipo_actividad', authenticateToken,(req, res) => {
 
 /**
  * @swagger
- * tags:
- *   - Tipo Actividad
  * /traveler/tipo_actividad/{id}:
  *   put:
- *     summary: Update tipo_actividad by ID
- *     description: Updates an existing tipo_actividad record by its ID.
+ *     summary: Actualizar un tipo de actividad por ID
  *     tags: [Tipo Actividad]
+ *     security:
+ *       - BearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
  *         required: true
- *         description: ID of the tipo_actividad
  *         schema:
  *           type: integer
+ *         description: ID del tipo de actividad
  *     requestBody:
  *       required: true
  *       content:
@@ -2021,14 +1841,13 @@ app.post('/traveler/tipo_actividad', authenticateToken,(req, res) => {
  *             properties:
  *               nombre_tipo_actividad:
  *                 type: string
- *                 description: The name of the tipo_actividad
  *     responses:
  *       200:
- *         description: tipo_actividad updated successfully
+ *         description: Tipo de actividad actualizado correctamente
  *       500:
- *         description: Error updating tipo_actividad
+ *         description: Error al actualizar el tipo de actividad
  */
-app.put('/traveler/tipo_actividad/:id', authenticateToken,(req, res) => {
+app.put('/traveler/tipo_actividad/:id', authenticateToken, (req, res) => {
     const id = req.params.id;
     const { nombre_tipo_actividad } = req.body;
     db.query('UPDATE traveler.tipo_actividad SET nombre_tipo_actividad = ? WHERE id_tipo_actividad = ?', [nombre_tipo_actividad, id], (err, result) => {
@@ -2043,27 +1862,26 @@ app.put('/traveler/tipo_actividad/:id', authenticateToken,(req, res) => {
 
 /**
  * @swagger
- * tags:
- *   - Tipo Actividad
  * /traveler/tipo_actividad/{id}:
  *   delete:
- *     summary: Delete tipo_actividad by ID
- *     description: Deletes a tipo_actividad record by its ID.
+ *     summary: Eliminar un tipo de actividad por ID
  *     tags: [Tipo Actividad]
+ *     security:
+ *       - BearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
  *         required: true
- *         description: ID of the tipo_actividad to delete
  *         schema:
  *           type: integer
+ *         description: ID del tipo de actividad
  *     responses:
  *       200:
- *         description: tipo_actividad deleted successfully
+ *         description: Tipo de actividad eliminado correctamente
  *       500:
- *         description: Error deleting tipo_actividad
+ *         description: Error al eliminar el tipo de actividad
  */
-app.delete('/traveler/tipo_actividad/:id', authenticateToken,(req, res) => {
+app.delete('/traveler/tipo_actividad/:id', authenticateToken, (req, res) => {
     const id = req.params.id;
     db.query('DELETE FROM traveler.tipo_actividad WHERE id_tipo_actividad = ?', [id], (err, result) => {
         if (err) {
@@ -2078,18 +1896,19 @@ app.delete('/traveler/tipo_actividad/:id', authenticateToken,(req, res) => {
 
 
 
-// Actividades
 
+
+
+// Actividades
 /**
  * @swagger
  * /traveler/actividades:
  *   get:
- *     summary: Get all actividades
- *     description: Retrieve a list of all activities from the database.
+ *     summary: Obtener todas las actividades
  *     tags: [Actividades]
  *     responses:
  *       200:
- *         description: A list of actividades
+ *         description: Lista de actividades obtenida correctamente
  *         content:
  *           application/json:
  *             schema:
@@ -2108,6 +1927,13 @@ app.delete('/traveler/tipo_actividad/:id', authenticateToken,(req, res) => {
  *                         type: integer
  *                       disponibilidad_actividad:
  *                         type: boolean
+ *                       precio:
+ *                         type: number
+ *                         format: float
+ *                       descripcion:
+ *                         type: string
+ *       500:
+ *         description: Error interno al obtener las actividades
  */
 app.get('/traveler/actividades', (req, res) => {
     db.query('SELECT * FROM traveler.actividades', (err, results) => {
@@ -2120,124 +1946,22 @@ app.get('/traveler/actividades', (req, res) => {
     });
 });
 
-//actividades completo
-/**
- * @swagger
- * /actividades_completo:
- *   get:
- *     summary: Get all actividades with their type
- *     description: Retrieves all activities with their corresponding type.
- *     tags: [Actividades]
- *     responses:
- *       200:
- *         description: List of activities with their type
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 actividades:
- *                   type: array
- *                   items:
- *                     type: object
- *                     properties:
- *                       id_actividad:
- *                         type: integer
- *                         description: The ID of the activity.
- *                       nombre:
- *                         type: string
- *                         description: The name of the activity.
- *                       descripcion:
- *                         type: string
- *                         description: The description of the activity.
- *                       precio:
- *                         type: number
- *                         description: The price of the activity.
- *                       id_tipo_actividad:
- *                         type: integer
- *                         description: The ID of the activity type.
- *                       tipo_actividad:
- *                         type: string
- *                         description: The name of the activity type.
- *       500:
- *         description: Error fetching actividades
- */
-app.get('/traveler/actividades_completo', (req, res) => {
-    db.query('SELECT * FROM actividades JOIN tipo_actividad ON actividades.id_tipo_actividad = tipo_actividad.id_tipo_actividad JOIN destinos ON actividades.id_destino = destinos.id_destino JOIN imagenes_actividades ON actividades.id_actividad = imagenes_actividades.id_actividad', (err, results) => {
-        if (err) {
-            console.error('Error fetching actividades:', err);
-            res.status(500).json({ error: 'Error fetching actividades' });
-        } else {
-            res.json({ actividades: results });
-        }
-    });
-});
-
-//actividades completo sin imagenes
-app.get('/traveler/actividades_completo_sin_imagenes', (req, res) => {
-    db.query('SELECT * FROM actividades JOIN tipo_actividad ON actividades.id_tipo_actividad = tipo_actividad.id_tipo_actividad JOIN destinos ON actividades.id_destino = destinos.id_destino', (err, results) => {
-        if (err) {
-            console.error('Error fetching actividades:', err);
-            res.status(500).json({ error: 'Error fetching actividades' });
-        } else {
-            res.json({ actividades: results });
-        }
-    });
-}
-);
-
-//actividades completo
-
-app.get('/traveler/actividades_completo/:id', (req, res) => {
-    const id = req.params.id;
-    db.query('SELECT * FROM actividades JOIN tipo_actividad ON actividades.id_tipo_actividad = tipo_actividad.id_tipo_actividad JOIN destinos ON actividades.id_destino = destinos.id_destino JOIN imagenes_actividades ON actividades.id_actividad = imagenes_actividades.id_actividad WHERE actividades.id_actividad = ?', [id], (err, results) => {
-        if (err) {
-            console.error('Error fetching actividades:', err);
-            res.status(500).json({ error: 'Error fetching actividades' });
-        } else {
-            res.json({ actividades: results });
-        }
-    });
-});
-
-
-//puto de actividades completo
-
-app.put('/traveler/actividades_completo/:id', authenticateToken, (req, res) => {
-    const id = req.params.id;
-    const { id_destino, id_tipo_actividad, disponibilidad_actividad, precio } = req.body;
-    db.query('UPDATE traveler.actividades SET id_destino = ?, id_tipo_actividad = ?, disponibilidad_actividad = ?, precio = ? WHERE id_actividad = ?', [id_destino, id_tipo_actividad, disponibilidad_actividad, precio, id], (err, result) => {
-        if (err) {
-            console.error('Error updating actividad:', err);
-            res.status(500).json({ error: 'Error updating actividad' });
-        } else {
-            res.json({ success: true });
-        }
-    });
-});
-
-
-
-
-
-
 /**
  * @swagger
  * /traveler/actividades/{id}:
  *   get:
- *     summary: Get actividad by ID
- *     description: Retrieve an activity by its ID.
+ *     summary: Obtener una actividad específica por su ID
  *     tags: [Actividades]
  *     parameters:
- *       - name: id
- *         in: path
- *         description: The ID of the actividad
+ *       - in: path
+ *         name: id
  *         required: true
  *         schema:
  *           type: integer
+ *         description: ID de la actividad
  *     responses:
  *       200:
- *         description: A single actividad
+ *         description: Detalles de la actividad obtenida correctamente
  *         content:
  *           application/json:
  *             schema:
@@ -2254,12 +1978,18 @@ app.put('/traveler/actividades_completo/:id', authenticateToken, (req, res) => {
  *                       type: integer
  *                     disponibilidad_actividad:
  *                       type: boolean
+ *                     precio:
+ *                       type: number
+ *                       format: float
+ *                     descripcion:
+ *                       type: string
  *       404:
- *         description: Actividad not found
+ *         description: Actividad no encontrada
+ *       500:
+ *         description: Error interno al obtener la actividad
  */
 app.get('/traveler/actividades/:id', (req, res) => {
     const id = req.params.id;
-    console.log("Fetching actividad with ID:", id); 
 
     db.query('SELECT * FROM traveler.actividades WHERE id_actividad = ?', [id], (err, results) => {
         if (err) {
@@ -2277,11 +2007,170 @@ app.get('/traveler/actividades/:id', (req, res) => {
 
 /**
  * @swagger
- * /traveler/actividades:
- *   post:
- *     summary: Create a new actividad
- *     description: Add a new actividad to the database.
+ * /traveler/actividades_completo:
+ *   get:
+ *     summary: Obtener todas las actividades con información completa (incluyendo imágenes)
  *     tags: [Actividades]
+ *     responses:
+ *       200:
+ *         description: Lista de actividades completas obtenida correctamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 actividades:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id_actividad:
+ *                         type: integer
+ *                       id_destino:
+ *                         type: integer
+ *                       id_tipo_actividad:
+ *                         type: integer
+ *                       disponibilidad_actividad:
+ *                         type: boolean
+ *                       precio:
+ *                         type: number
+ *                         format: float
+ *                       descripcion:
+ *                         type: string
+ *                       imagen_actividad:
+ *                         type: string
+ *                         format: uri
+ *       500:
+ *         description: Error interno al obtener las actividades completas
+ */
+app.get('/traveler/actividades_completo', (req, res) => {
+    db.query('SELECT * FROM actividades JOIN tipo_actividad ON actividades.id_tipo_actividad = tipo_actividad.id_tipo_actividad JOIN destinos ON actividades.id_destino = destinos.id_destino JOIN imagenes_actividades ON actividades.id_actividad = imagenes_actividades.id_actividad', (err, results) => {
+        if (err) {
+            console.error('Error fetching actividades:', err);
+            res.status(500).json({ error: 'Error fetching actividades' });
+        } else {
+            res.json({ actividades: results });
+        }
+    });
+});
+
+/**
+ * @swagger
+ * /traveler/actividades_completo_sin_imagenes:
+ *   get:
+ *     summary: Obtener todas las actividades con información completa sin imágenes
+ *     tags: [Actividades]
+ *     responses:
+ *       200:
+ *         description: Lista de actividades completas sin imágenes obtenida correctamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 actividades:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id_actividad:
+ *                         type: integer
+ *                       id_destino:
+ *                         type: integer
+ *                       id_tipo_actividad:
+ *                         type: integer
+ *                       disponibilidad_actividad:
+ *                         type: boolean
+ *                       precio:
+ *                         type: number
+ *                         format: float
+ *                       descripcion:
+ *                         type: string
+ *       500:
+ *         description: Error interno al obtener las actividades sin imágenes
+ */
+app.get('/traveler/actividades_completo_sin_imagenes', (req, res) => {
+    db.query('SELECT * FROM actividades JOIN tipo_actividad ON actividades.id_tipo_actividad = tipo_actividad.id_tipo_actividad JOIN destinos ON actividades.id_destino = destinos.id_destino', (err, results) => {
+        if (err) {
+            console.error('Error fetching actividades:', err);
+            res.status(500).json({ error: 'Error fetching actividades' });
+        } else {
+            res.json({ actividades: results });
+        }
+    });
+}
+);
+
+/**
+ * @swagger
+ * /traveler/actividades_completo/{id}:
+ *   get:
+ *     summary: Obtener una actividad completa por su ID (incluyendo imágenes)
+ *     tags: [Actividades]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID de la actividad
+ *     responses:
+ *       200:
+ *         description: Detalles completos de la actividad obtenida correctamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 actividad:
+ *                   type: object
+ *                   properties:
+ *                     id_actividad:
+ *                       type: integer
+ *                     id_destino:
+ *                       type: integer
+ *                     id_tipo_actividad:
+ *                       type: integer
+ *                     disponibilidad_actividad:
+ *                       type: boolean
+ *                     precio:
+ *                       type: number
+ *                       format: float
+ *                     descripcion:
+ *                       type: string
+ *                     imagen_actividad:
+ *                       type: string
+ *                       format: uri
+ *       404:
+ *         description: Actividad no encontrada
+ *       500:
+ *         description: Error interno al obtener la actividad
+ */
+app.get('/traveler/actividades_completo/:id', (req, res) => {
+    const id = req.params.id;
+    db.query('SELECT * FROM actividades JOIN tipo_actividad ON actividades.id_tipo_actividad = tipo_actividad.id_tipo_actividad JOIN destinos ON actividades.id_destino = destinos.id_destino JOIN imagenes_actividades ON actividades.id_actividad = imagenes_actividades.id_actividad WHERE actividades.id_actividad = ?', [id], (err, results) => {
+        if (err) {
+            console.error('Error fetching actividades:', err);
+            res.status(500).json({ error: 'Error fetching actividades' });
+        } else {
+            res.json({ actividades: results });
+        }
+    });
+});
+
+/**
+ * @swagger
+ * /traveler/actividades_completo/{id}:
+ *   put:
+ *     summary: Actualizar los detalles de una actividad por su ID
+ *     tags: [Actividades]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID de la actividad
  *     requestBody:
  *       required: true
  *       content:
@@ -2289,8 +2178,6 @@ app.get('/traveler/actividades/:id', (req, res) => {
  *           schema:
  *             type: object
  *             properties:
- *               id_actividad:
- *                 type: integer
  *               id_destino:
  *                 type: integer
  *               id_tipo_actividad:
@@ -2299,49 +2186,34 @@ app.get('/traveler/actividades/:id', (req, res) => {
  *                 type: boolean
  *               precio:
  *                 type: number
+ *                 format: float
  *     responses:
- *       201:
- *         description: Successfully created actividad
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 id:
- *                   type: integer
+ *       200:
+ *         description: Actividad actualizada correctamente
+ *       400:
+ *         description: Petición incorrecta
+ *       500:
+ *         description: Error interno al actualizar la actividad
  */
-app.post('/traveler/actividades', authenticateToken,(req, res) => {
-    const { id_destino, id_tipo_actividad, disponibilidad_actividad, precio, descripcion } = req.body;
-    const disponibilidad = Boolean(disponibilidad_actividad);
-
-    db.query('INSERT INTO traveler.actividades ( id_destino, id_tipo_actividad, disponibilidad_actividad, precio, descripcion) VALUES ( ?, ?, ?, ?, ?)', [id_destino, id_tipo_actividad, disponibilidad, precio, descripcion], (err, result) => {
+app.put('/traveler/actividades_completo/:id', authenticateToken, (req, res) => {
+    const id = req.params.id;
+    const { id_destino, id_tipo_actividad, disponibilidad_actividad, precio } = req.body;
+    db.query('UPDATE traveler.actividades SET id_destino = ?, id_tipo_actividad = ?, disponibilidad_actividad = ?, precio = ? WHERE id_actividad = ?', [id_destino, id_tipo_actividad, disponibilidad_actividad, precio, id], (err, result) => {
         if (err) {
-            console.error('Error creating actividad:', err);
-            res.status(500).json({ error: 'Error creating actividad' });
+            console.error('Error updating actividad:', err);
+            res.status(500).json({ error: 'Error updating actividad' });
         } else {
-            res.json({ id: result.insertId });
+            res.json({ success: true });
         }
-    }
-    );
-
+    });
 });
-
-
 
 /**
  * @swagger
- * /traveler/actividades/{id}:
- *   put:
- *     summary: Update actividad by ID
- *     description: Update an existing actividad by its ID.
+ * /traveler/actividades:
+ *   post:
+ *     summary: Crear una nueva actividad
  *     tags: [Actividades]
- *     parameters:
- *       - name: id
- *         in: path
- *         description: The ID of the actividad
- *         required: true
- *         schema:
- *           type: integer
  *     requestBody:
  *       required: true
  *       content:
@@ -2355,13 +2227,80 @@ app.post('/traveler/actividades', authenticateToken,(req, res) => {
  *                 type: integer
  *               disponibilidad_actividad:
  *                 type: boolean
+ *               precio:
+ *                 type: number
+ *                 format: float
+ *               descripcion:
+ *                 type: string
  *     responses:
  *       200:
- *         description: Successfully updated actividad
- *       404:
- *         description: Actividad not found
+ *         description: Actividad creada correctamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id_actividad:
+ *                   type: integer
+ *       400:
+ *         description: Petición incorrecta
+ *       500:
+ *         description: Error interno al crear la actividad
  */
-app.put('/traveler/actividades/:id', authenticateToken,(req, res) => {
+app.post('/traveler/actividades', authenticateToken, (req, res) => {
+    const { id_destino, id_tipo_actividad, disponibilidad_actividad, precio, descripcion } = req.body;
+    const disponibilidad = Boolean(disponibilidad_actividad);
+
+    db.query('INSERT INTO traveler.actividades ( id_destino, id_tipo_actividad, disponibilidad_actividad, precio, descripcion) VALUES ( ?, ?, ?, ?, ?)', [id_destino, id_tipo_actividad, disponibilidad, precio, descripcion], (err, result) => {
+        if (err) {
+            console.error('Error creating actividad:', err);
+            res.status(500).json({ error: 'Error creating actividad' });
+        } else {
+            res.json({ id_actividad: result.insertId });
+        }
+    }
+    );
+
+});
+
+/**
+ * @swagger
+ * /traveler/actividades/{id}:
+ *   put:
+ *     summary: Actualizar los detalles de una actividad por su ID
+ *     tags: [Actividades]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID de la actividad
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               id_destino:
+ *                 type: integer
+ *               id_tipo_actividad:
+ *                 type: integer
+ *               disponibilidad_actividad:
+ *                 type: boolean
+ *               precio:
+ *                 type: number
+ *                 format: float
+ *     responses:
+ *       200:
+ *         description: Actividad actualizada correctamente
+ *       400:
+ *         description: Petición incorrecta
+ *       500:
+ *         description: Error interno al actualizar la actividad
+ */
+app.put('/traveler/actividades/:id', authenticateToken, (req, res) => {
     const id_actividad = req.params.id;
     const { id_destino, id_tipo_actividad, disponibilidad_actividad, precio } = req.body;
     const disponibilidad = Boolean(disponibilidad_actividad);
@@ -2381,23 +2320,24 @@ app.put('/traveler/actividades/:id', authenticateToken,(req, res) => {
  * @swagger
  * /traveler/actividades/{id}:
  *   delete:
- *     summary: Delete actividad by ID
- *     description: Delete an actividad by its ID.
+ *     summary: Eliminar una actividad por su ID
  *     tags: [Actividades]
  *     parameters:
- *       - name: id
- *         in: path
- *         description: The ID of the actividad
+ *       - in: path
+ *         name: id
  *         required: true
  *         schema:
  *           type: integer
+ *         description: ID de la actividad
  *     responses:
  *       200:
- *         description: Successfully deleted actividad
+ *         description: Actividad eliminada correctamente
  *       404:
- *         description: Actividad not found
+ *         description: Actividad no encontrada
+ *       500:
+ *         description: Error interno al eliminar la actividad
  */
-app.delete('/traveler/actividades/:id', authenticateToken,(req, res) => {
+app.delete('/traveler/actividades/:id', authenticateToken, (req, res) => {
     const id = req.params.id;
     db.query('DELETE FROM traveler.actividades WHERE id_actividad = ?', [id], (err, result) => {
         if (err) {
@@ -2412,18 +2352,19 @@ app.delete('/traveler/actividades/:id', authenticateToken,(req, res) => {
 
 
 
-// Alojamientos
 
+
+
+// Alojamientos
 /**
  * @swagger
  * /traveler/alojamientos:
  *   get:
- *     summary: Get all alojamientos
- *     description: Retrieve a list of all alojamientos from the database.
+ *     summary: Obtener todos los alojamientos
  *     tags: [Alojamientos]
  *     responses:
  *       200:
- *         description: A list of alojamientos
+ *         description: Lista de alojamientos
  *         content:
  *           application/json:
  *             schema:
@@ -2438,16 +2379,19 @@ app.delete('/traveler/actividades/:id', authenticateToken,(req, res) => {
  *                         type: integer
  *                       nombre_alojamiento:
  *                         type: string
- *                       id_destino:
- *                         type: integer
  *                       precio_dia:
  *                         type: number
+ *                         format: float
  *                       descripcion:
  *                         type: string
- *                       id_usuario:
- *                         type: integer
- *                       max_personas:
- *                         type: integer
+ *                       direccion:
+ *                         type: string
+ *                       hora_entrada:
+ *                         type: string
+ *                       hora_salida:
+ *                         type: string
+ *       500:
+ *         description: Error al obtener los alojamientos
  */
 app.get('/traveler/alojamientos', (req, res) => {
     db.query('SELECT * FROM traveler.alojamientos', (err, results) => {
@@ -2460,7 +2404,57 @@ app.get('/traveler/alojamientos', (req, res) => {
     });
 });
 
-
+/**
+ * @swagger
+ * /traveler/alojamientos_completo:
+ *   get:
+ *     summary: Obtener todos los alojamientos con detalles completos
+ *     tags: [Alojamientos]
+ *     responses:
+ *       200:
+ *         description: Lista de alojamientos completos
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 alojamientos:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id_alojamiento:
+ *                         type: integer
+ *                       nombre_alojamiento:
+ *                         type: string
+ *                       precio_dia:
+ *                         type: number
+ *                         format: float
+ *                       descripcion:
+ *                         type: string
+ *                       direccion:
+ *                         type: string
+ *                       hora_entrada:
+ *                         type: string
+ *                       hora_salida:
+ *                         type: string
+ *                       destino:
+ *                         type: object
+ *                         properties:
+ *                           id_destino:
+ *                             type: integer
+ *                           nombre_destino:
+ *                             type: string
+ *                       usuario:
+ *                         type: object
+ *                         properties:
+ *                           id_usuario:
+ *                             type: integer
+ *                           nombre_usuario:
+ *                             type: string
+ *       500:
+ *         description: Error al obtener los alojamientos completos
+ */
 app.get('/traveler/alojamientos_completo', (req, res) => {
     db.query('SELECT * FROM traveler.alojamientos JOIN traveler.destinos ON alojamientos.id_destino = destinos.id_destino JOIN traveler.usuarios ON alojamientos.id_usuario = usuarios.id_usuario', (err, results) => {
         if (err) {
@@ -2474,21 +2468,20 @@ app.get('/traveler/alojamientos_completo', (req, res) => {
 
 /**
  * @swagger
- * /traveler/alojamientos/{id}:
+ * /traveler/alojamientos_completo/{id}:
  *   get:
- *     summary: Get alojamiento by ID
- *     description: Retrieve an alojamiento by its ID.
+ *     summary: Obtener alojamiento completo por ID
  *     tags: [Alojamientos]
  *     parameters:
- *       - name: id
- *         in: path
- *         description: The ID of the alojamiento
+ *       - in: path
+ *         name: id
  *         required: true
  *         schema:
  *           type: integer
+ *         description: ID del alojamiento
  *     responses:
  *       200:
- *         description: A single alojamiento
+ *         description: Información del alojamiento completo
  *         content:
  *           application/json:
  *             schema:
@@ -2501,22 +2494,94 @@ app.get('/traveler/alojamientos_completo', (req, res) => {
  *                       type: integer
  *                     nombre_alojamiento:
  *                       type: string
- *                     id_destino:
- *                       type: integer
  *                     precio_dia:
  *                       type: number
+ *                       format: float
  *                     descripcion:
  *                       type: string
- *                     id_usuario:
- *                       type: integer
- *                     max_personas:
- *                       type: integer
+ *                     direccion:
+ *                       type: string
+ *                     hora_entrada:
+ *                       type: string
+ *                     hora_salida:
+ *                       type: string
+ *                     destino:
+ *                       type: object
+ *                       properties:
+ *                         id_destino:
+ *                           type: integer
+ *                         nombre_destino:
+ *                           type: string
+ *                     usuario:
+ *                       type: object
+ *                       properties:
+ *                         id_usuario:
+ *                           type: integer
+ *                         nombre_usuario:
+ *                           type: string
  *       404:
- *         description: Alojamiento not found
+ *         description: Alojamiento no encontrado
+ *       500:
+ *         description: Error al obtener el alojamiento completo
+ */
+app.get('/traveler/alojamientos_completo/:id', (req, res) => {
+    const id = req.params.id;
+    db.query('SELECT * FROM traveler.alojamientos JOIN traveler.destinos ON alojamientos.id_destino = destinos.id_destino JOIN traveler.usuarios ON alojamientos.id_usuario = usuarios.id_usuario WHERE alojamientos.id_alojamiento = ?', [id], (err, results) => {
+        if (err) {
+            console.error('Error fetching alojamientos:', err);
+            res.status(500).json({ error: 'Error fetching alojamientos' });
+        } else {
+            res.json({ alojamientos: results });
+        }
+    });
+});
+
+/**
+ * @swagger
+ * /traveler/alojamientos/{id}:
+ *   get:
+ *     summary: Obtener un alojamiento por ID
+ *     tags: [Alojamientos]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID del alojamiento
+ *     responses:
+ *       200:
+ *         description: Información del alojamiento
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 alojamiento:
+ *                   type: object
+ *                   properties:
+ *                     id_alojamiento:
+ *                       type: integer
+ *                     nombre_alojamiento:
+ *                       type: string
+ *                     precio_dia:
+ *                       type: number
+ *                       format: float
+ *                     descripcion:
+ *                       type: string
+ *                     direccion:
+ *                       type: string
+ *                     hora_entrada:
+ *                       type: string
+ *                     hora_salida:
+ *                       type: string
+ *       404:
+ *         description: Alojamiento no encontrado
+ *       500:
+ *         description: Error al obtener el alojamiento
  */
 app.get('/traveler/alojamientos/:id', (req, res) => {
     const id = req.params.id;
-    console.log("Fetching alojamiento with ID:", id); 
 
     db.query('SELECT * FROM traveler.alojamientos WHERE id_alojamiento = ?', [id], (err, results) => {
         if (err) {
@@ -2536,8 +2601,7 @@ app.get('/traveler/alojamientos/:id', (req, res) => {
  * @swagger
  * /traveler/alojamientos:
  *   post:
- *     summary: Create a new alojamiento
- *     description: Add a new alojamiento to the database.
+ *     summary: Crear un nuevo alojamiento
  *     tags: [Alojamientos]
  *     requestBody:
  *       required: true
@@ -2552,32 +2616,39 @@ app.get('/traveler/alojamientos/:id', (req, res) => {
  *                 type: integer
  *               precio_dia:
  *                 type: number
+ *                 format: float
  *               descripcion:
  *                 type: string
- *               id_usuario:
- *                 type: integer
  *               max_personas:
  *                 type: integer
+ *               direccion:
+ *                 type: string
+ *               hora_entrada:
+ *                 type: string
+ *               hora_salida:
+ *                 type: string
  *     responses:
- *       201:
- *         description: Successfully created alojamiento
+ *       200:
+ *         description: Alojamiento creado exitosamente
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
- *                 id:
+ *                 id_alojamiento:
  *                   type: integer
+ *       500:
+ *         description: Error al crear alojamiento
  */
-app.post('/traveler/alojamientos', authenticateToken,(req, res) => {
+app.post('/traveler/alojamientos', authenticateToken, (req, res) => {
     const { nombre_alojamiento, id_destino, precio_dia, descripcion, max_personas, direccion, hora_entrada, hora_salida } = req.body;
-    const id_usuario = req.user.id; 
+    const id_usuario = req.user.id;
     db.query('INSERT INTO traveler.alojamientos (nombre_alojamiento, id_destino, precio_dia, descripcion, id_usuario, max_personas, direccion, hora_entrada, hora_salida) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', [nombre_alojamiento, id_destino, precio_dia, descripcion, id_usuario, max_personas, direccion, hora_entrada, hora_salida], (err, result) => {
         if (err) {
             console.error('Error creating alojamiento:', err);
             res.status(500).json({ error: 'Error creating alojamiento' });
         } else {
-            res.json({ id: result.insertId });
+            res.json({ id_alojamiento: result.insertId });
         }
     }
     );
@@ -2587,16 +2658,15 @@ app.post('/traveler/alojamientos', authenticateToken,(req, res) => {
  * @swagger
  * /traveler/alojamientos/{id}:
  *   put:
- *     summary: Update alojamiento by ID
- *     description: Update an existing alojamiento by its ID.
+ *     summary: Actualizar un alojamiento por ID
  *     tags: [Alojamientos]
  *     parameters:
- *       - name: id
- *         in: path
- *         description: The ID of the alojamiento
+ *       - in: path
+ *         name: id
  *         required: true
  *         schema:
  *           type: integer
+ *         description: ID del alojamiento
  *     requestBody:
  *       required: true
  *       content:
@@ -2610,21 +2680,82 @@ app.post('/traveler/alojamientos', authenticateToken,(req, res) => {
  *                 type: integer
  *               precio_dia:
  *                 type: number
+ *                 format: float
  *               descripcion:
  *                 type: string
- *               id_usuario:
- *                 type: integer
  *               max_personas:
  *                 type: integer
+ *               direccion:
+ *                 type: string
+ *               hora_entrada:
+ *                 type: string
+ *               hora_salida:
+ *                 type: string
  *     responses:
  *       200:
- *         description: Successfully updated alojamiento
- *       404:
- *         description: Alojamiento not found
+ *         description: Alojamiento actualizado exitosamente
+ *       500:
+ *         description: Error al actualizar alojamiento
  */
-app.put('/traveler/alojamientos/:id', authenticateToken,(req, res) => {
+app.put('/traveler/alojamientos/:id', authenticateToken, (req, res) => {
     const id = req.params.id;
-    const { nombre_alojamiento, id_destino, precio_dia, descripcion, id_usuario, max_personas , direccion, hora_entrada, hora_salida} = req.body;
+    const { nombre_alojamiento, id_destino, precio_dia, descripcion, id_usuario, max_personas, direccion, hora_entrada, hora_salida } = req.body;
+    db.query('UPDATE traveler.alojamientos SET nombre_alojamiento = ?, id_destino = ?, precio_dia = ?, descripcion = ?, id_usuario = ?, max_personas = ?, direccion = ?, hora_entrada = ?, hora_salida = ? WHERE id_alojamiento = ?', [nombre_alojamiento, id_destino, precio_dia, descripcion, id_usuario, max_personas, direccion, hora_entrada, hora_salida, id], (err, result) => {
+        if (err) {
+            console.error('Error updating alojamiento:', err);
+            res.status(500).json({ error: 'Error updating alojamiento' });
+        } else {
+            res.json({ success: true });
+        }
+    });
+});
+
+/**
+ * @swagger
+ * /traveler/alojamientos_completo/{id}:
+ *   put:
+ *     summary: Actualizar un alojamiento completo por ID
+ *     tags: [Alojamientos]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID del alojamiento
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               nombre_alojamiento:
+ *                 type: string
+ *               id_destino:
+ *                 type: integer
+ *               precio_dia:
+ *                 type: number
+ *                 format: float
+ *               descripcion:
+ *                 type: string
+ *               max_personas:
+ *                 type: integer
+ *               direccion:
+ *                 type: string
+ *               hora_entrada:
+ *                 type: string
+ *               hora_salida:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Alojamiento completo actualizado exitosamente
+ *       500:
+ *         description: Error al actualizar alojamiento completo
+ */
+app.put('/traveler/alojamientos_completo/:id', authenticateToken, (req, res) => {
+    const id = req.params.id;
+    const { nombre_alojamiento, id_destino, precio_dia, descripcion, id_usuario, max_personas, direccion, hora_entrada, hora_salida } = req.body;
     db.query('UPDATE traveler.alojamientos SET nombre_alojamiento = ?, id_destino = ?, precio_dia = ?, descripcion = ?, id_usuario = ?, max_personas = ?, direccion = ?, hora_entrada = ?, hora_salida = ? WHERE id_alojamiento = ?', [nombre_alojamiento, id_destino, precio_dia, descripcion, id_usuario, max_personas, direccion, hora_entrada, hora_salida, id], (err, result) => {
         if (err) {
             console.error('Error updating alojamiento:', err);
@@ -2639,23 +2770,22 @@ app.put('/traveler/alojamientos/:id', authenticateToken,(req, res) => {
  * @swagger
  * /traveler/alojamientos/{id}:
  *   delete:
- *     summary: Delete alojamiento by ID
- *     description: Delete an alojamiento by its ID.
+ *     summary: Eliminar un alojamiento por ID
  *     tags: [Alojamientos]
  *     parameters:
- *       - name: id
- *         in: path
- *         description: The ID of the alojamiento
+ *       - in: path
+ *         name: id
  *         required: true
  *         schema:
  *           type: integer
+ *         description: ID del alojamiento
  *     responses:
  *       200:
- *         description: Successfully deleted alojamiento
- *       404:
- *         description: Alojamiento not found
+ *         description: Alojamiento eliminado exitosamente
+ *       500:
+ *         description: Error al eliminar alojamiento
  */
-app.delete('/traveler/alojamientos/:id', authenticateToken,(req, res) => {
+app.delete('/traveler/alojamientos/:id', authenticateToken, (req, res) => {
     const id = req.params.id;
     db.query('DELETE FROM traveler.alojamientos WHERE id_alojamiento = ?', [id], (err, result) => {
         if (err) {
@@ -2670,18 +2800,19 @@ app.delete('/traveler/alojamientos/:id', authenticateToken,(req, res) => {
 
 
 
-// Valoraciones Alojamientos
 
+
+
+// Valoraciones Alojamientos
 /**
  * @swagger
  * /traveler/valoraciones_alojamientos:
  *   get:
- *     summary: Get all valoraciones_alojamientos
- *     description: Retrieves all valoraciones_alojamientos from the database.
+ *     summary: Obtener todas las valoraciones de alojamientos
  *     tags: [Valoraciones Alojamientos]
  *     responses:
  *       200:
- *         description: Successfully fetched all valoraciones_alojamientos
+ *         description: Lista de valoraciones de alojamientos
  *         content:
  *           application/json:
  *             schema:
@@ -2694,21 +2825,16 @@ app.delete('/traveler/alojamientos/:id', authenticateToken,(req, res) => {
  *                     properties:
  *                       id_valoracion:
  *                         type: integer
- *                         description: The ID of the valoracion.
  *                       id_alojamiento:
  *                         type: integer
- *                         description: The ID of the alojamiento being rated.
- *                       id_usuario:
- *                         type: integer
- *                         description: The ID of the user who made the rating.
  *                       valoracion:
  *                         type: integer
- *                         description: The rating value (e.g., 1-5).
  *                       comentario:
  *                         type: string
- *                         description: The comment left by the user.
+ *                       id_usuario:
+ *                         type: integer
  *       500:
- *         description: Error fetching valoraciones_alojamientos
+ *         description: Error al obtener las valoraciones de alojamientos
  */
 app.get('/traveler/valoraciones_alojamientos', (req, res) => {
     db.query('SELECT * FROM traveler.valoraciones_alojamientos', (err, results) => {
@@ -2725,19 +2851,18 @@ app.get('/traveler/valoraciones_alojamientos', (req, res) => {
  * @swagger
  * /traveler/valoraciones_alojamientos/{id}:
  *   get:
- *     summary: Get valoraciones_alojamientos by ID
- *     description: Retrieves a single valoracion_alojamiento by its ID.
+ *     summary: Obtener una valoración de alojamiento por ID
  *     tags: [Valoraciones Alojamientos]
  *     parameters:
- *       - name: id
- *         in: path
- *         description: The ID of the valoracion_alojamiento to retrieve
+ *       - in: path
+ *         name: id
  *         required: true
  *         schema:
  *           type: integer
+ *         description: ID de la valoración
  *     responses:
  *       200:
- *         description: Successfully fetched valoracion_alojamiento
+ *         description: Información de la valoración de alojamiento
  *         content:
  *           application/json:
  *             schema:
@@ -2748,23 +2873,18 @@ app.get('/traveler/valoraciones_alojamientos', (req, res) => {
  *                   properties:
  *                     id_valoracion:
  *                       type: integer
- *                       description: The ID of the valoracion.
  *                     id_alojamiento:
  *                       type: integer
- *                       description: The ID of the alojamiento being rated.
- *                     id_usuario:
- *                       type: integer
- *                       description: The ID of the user who made the rating.
  *                     valoracion:
  *                       type: integer
- *                       description: The rating value (e.g., 1-5).
  *                     comentario:
  *                       type: string
- *                       description: The comment left by the user.
+ *                     id_usuario:
+ *                       type: integer
  *       404:
- *         description: Valoracion_alojamiento not found
+ *         description: Valoración de alojamiento no encontrada
  *       500:
- *         description: Error fetching valoraciones_alojamientos
+ *         description: Error al obtener la valoración de alojamiento
  */
 app.get('/traveler/valoraciones_alojamientos/:id', (req, res) => {
     const id = req.params.id;
@@ -2787,8 +2907,7 @@ app.get('/traveler/valoraciones_alojamientos/:id', (req, res) => {
  * @swagger
  * /traveler/valoraciones_alojamientos:
  *   post:
- *     summary: Create a new valoracion_alojamiento
- *     description: Create a new valoracion_alojamiento to rate an accommodation.
+ *     summary: Crear una nueva valoración de alojamiento
  *     tags: [Valoraciones Alojamientos]
  *     requestBody:
  *       required: true
@@ -2799,19 +2918,15 @@ app.get('/traveler/valoraciones_alojamientos/:id', (req, res) => {
  *             properties:
  *               id_alojamiento:
  *                 type: integer
- *                 description: The ID of the alojamiento being rated.
  *               valoracion:
  *                 type: integer
- *                 description: The rating value (e.g., 1-5).
  *               comentario:
  *                 type: string
- *                 description: The comment left by the user.
  *               id_usuario:
  *                 type: integer
- *                 description: The ID of the user who made the rating.
  *     responses:
  *       200:
- *         description: Successfully created valoracion_alojamiento
+ *         description: Valoración de alojamiento creada exitosamente
  *         content:
  *           application/json:
  *             schema:
@@ -2819,11 +2934,10 @@ app.get('/traveler/valoraciones_alojamientos/:id', (req, res) => {
  *               properties:
  *                 id:
  *                   type: integer
- *                   description: The ID of the newly created valoracion_alojamiento.
  *       500:
- *         description: Error creating valoracion_alojamiento
+ *         description: Error al crear la valoración de alojamiento
  */
-app.post('/traveler/valoraciones_alojamientos', authenticateToken,(req, res) => {
+app.post('/traveler/valoraciones_alojamientos', authenticateToken, (req, res) => {
     const { id_alojamiento, valoracion, comentario, id_usuario } = req.body;
     db.query('INSERT INTO traveler.valoraciones_alojamientos (id_alojamiento, valoracion, comentario, id_usuario) VALUES (?, ?, ?, ?)', [id_alojamiento, valoracion, comentario, id_usuario], (err, result) => {
         if (err) {
@@ -2839,16 +2953,15 @@ app.post('/traveler/valoraciones_alojamientos', authenticateToken,(req, res) => 
  * @swagger
  * /traveler/valoraciones_alojamientos/{id}:
  *   put:
- *     summary: Update valoracion_alojamiento by ID
- *     description: Update a valoracion_alojamiento by its ID.
+ *     summary: Actualizar una valoración de alojamiento por ID
  *     tags: [Valoraciones Alojamientos]
  *     parameters:
- *       - name: id
- *         in: path
- *         description: The ID of the valoracion_alojamiento to update
+ *       - in: path
+ *         name: id
  *         required: true
  *         schema:
  *           type: integer
+ *         description: ID de la valoración
  *     requestBody:
  *       required: true
  *       content:
@@ -2858,25 +2971,19 @@ app.post('/traveler/valoraciones_alojamientos', authenticateToken,(req, res) => 
  *             properties:
  *               id_alojamiento:
  *                 type: integer
- *                 description: The ID of the alojamiento being rated.
  *               valoracion:
  *                 type: integer
- *                 description: The rating value (e.g., 1-5).
  *               comentario:
  *                 type: string
- *                 description: The comment left by the user.
  *               id_usuario:
  *                 type: integer
- *                 description: The ID of the user who made the rating.
  *     responses:
  *       200:
- *         description: Successfully updated valoracion_alojamiento
- *       404:
- *         description: Valoracion_alojamiento not found
+ *         description: Valoración de alojamiento actualizada exitosamente
  *       500:
- *         description: Error updating valoracion_alojamiento
+ *         description: Error al actualizar la valoración de alojamiento
  */
-app.put('/traveler/valoraciones_alojamientos/:id', authenticateToken,(req, res) => {
+app.put('/traveler/valoraciones_alojamientos/:id', authenticateToken, (req, res) => {
     const id = req.params.id;
     const { id_alojamiento, valoracion, comentario, id_usuario } = req.body;
     db.query('UPDATE traveler.valoraciones_alojamientos SET id_alojamiento = ?, valoracion = ?, comentario = ?, id_usuario = ? WHERE id_valoracion = ?', [id_alojamiento, valoracion, comentario, id_usuario, id], (err, result) => {
@@ -2893,25 +3000,22 @@ app.put('/traveler/valoraciones_alojamientos/:id', authenticateToken,(req, res) 
  * @swagger
  * /traveler/valoraciones_alojamientos/{id}:
  *   delete:
- *     summary: Delete valoracion_alojamiento by ID
- *     description: Delete a valoracion_alojamiento by its ID.
+ *     summary: Eliminar una valoración de alojamiento por ID
  *     tags: [Valoraciones Alojamientos]
  *     parameters:
- *       - name: id
- *         in: path
- *         description: The ID of the valoracion_alojamiento to delete
+ *       - in: path
+ *         name: id
  *         required: true
  *         schema:
  *           type: integer
+ *         description: ID de la valoración
  *     responses:
  *       200:
- *         description: Successfully deleted valoracion_alojamiento
- *       404:
- *         description: Valoracion_alojamiento not found
+ *         description: Valoración de alojamiento eliminada exitosamente
  *       500:
- *         description: Error deleting valoracion_alojamiento
+ *         description: Error al eliminar la valoración de alojamiento
  */
-app.delete('/traveler/valoraciones_alojamientos/:id', authenticateToken,(req, res) => {
+app.delete('/traveler/valoraciones_alojamientos/:id', authenticateToken, (req, res) => {
     const id = req.params.id;
     db.query('DELETE FROM traveler.valoraciones_alojamientos WHERE id_valoracion = ?', [id], (err, result) => {
         if (err) {
@@ -2926,41 +3030,41 @@ app.delete('/traveler/valoraciones_alojamientos/:id', authenticateToken,(req, re
 
 
 
-// Imagenes Alojamientos
 
+
+
+// Imagenes Alojamientos
 /**
  * @swagger
  * /traveler/imagenes_alojamientos:
  *   get:
- *     summary: Get all imagenes_alojamientos
- *     description: Retrieve a list of all imagenes_alojamientos.
+ *     summary: Obtener todas las imágenes de alojamientos
  *     tags: [Imagenes Alojamientos]
  *     responses:
  *       200:
- *         description: Successfully fetched imagenes_alojamientos
+ *         description: Lista de imágenes de alojamientos
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
- *                 imagenes_alojamientos:
+ *                 imagenes:
  *                   type: array
  *                   items:
  *                     type: object
  *                     properties:
- *                       id_imagen:
+ *                       id_imagen_alojamiento:
  *                         type: integer
  *                       id_alojamiento:
  *                         type: integer
- *                       url_imagen:
+ *                       nombre_imagen_alojamiento:
  *                         type: string
  *       500:
- *         description: Error fetching imagenes_alojamientos
+ *         description: Error al obtener las imágenes de alojamientos
  */
 app.get('/traveler/imagenes_alojamientos', (req, res) => {
     db.query('SELECT * FROM traveler.imagenes_alojamientos', (err, results) => {
         if (err) {
-            console.log('Todavia no tiene imagenes');
             res.status(500).json({ error: 'Error fetching imagenes_alojamientos' });
         } else {
             res.json({ imagenes: results });
@@ -2972,19 +3076,18 @@ app.get('/traveler/imagenes_alojamientos', (req, res) => {
  * @swagger
  * /traveler/imagenes_alojamientos/{id}:
  *   get:
- *     summary: Get imagenes_alojamientos by ID
- *     description: Retrieve a specific imagen_alojamiento by its ID.
+ *     summary: Obtener una imagen de alojamiento por ID
  *     tags: [Imagenes Alojamientos]
  *     parameters:
- *       - name: id
- *         in: path
- *         description: The ID of the imagen_alojamiento
+ *       - in: path
+ *         name: id
  *         required: true
  *         schema:
  *           type: integer
+ *         description: ID de la imagen
  *     responses:
  *       200:
- *         description: Successfully fetched imagen_alojamiento
+ *         description: Información de la imagen de alojamiento
  *         content:
  *           application/json:
  *             schema:
@@ -2993,16 +3096,16 @@ app.get('/traveler/imagenes_alojamientos', (req, res) => {
  *                 imagen_alojamiento:
  *                   type: object
  *                   properties:
- *                     id_imagen:
+ *                     id_imagen_alojamiento:
  *                       type: integer
  *                     id_alojamiento:
  *                       type: integer
- *                     url_imagen:
+ *                     nombre_imagen_alojamiento:
  *                       type: string
  *       404:
- *         description: Imagen_alojamiento not found
+ *         description: Imagen de alojamiento no encontrada
  *       500:
- *         description: Error fetching imagen_alojamiento
+ *         description: Error al obtener la imagen de alojamiento
  */
 app.get('/traveler/imagenes_alojamientos/:id', (req, res) => {
     const id = req.params.id;
@@ -3021,6 +3124,36 @@ app.get('/traveler/imagenes_alojamientos/:id', (req, res) => {
     });
 });
 
+/**
+ * @swagger
+ * /traveler/imagenes_alojamientos/alojamiento/{id}:
+ *   get:
+ *     summary: Obtener las imágenes de un alojamiento por ID de alojamiento
+ *     tags: [Imagenes Alojamientos]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID del alojamiento
+ *     responses:
+ *       200:
+ *         description: Lista de nombres de imágenes de alojamiento
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 imagenes:
+ *                   type: array
+ *                   items:
+ *                     type: string
+ *       404:
+ *         description: No se encontraron imágenes para el alojamiento
+ *       500:
+ *         description: Error al obtener las imágenes de alojamiento
+ */
 app.get('/traveler/imagenes_alojamientos/alojamiento/:id', (req, res) => {
     const id = req.params.id;
 
@@ -3042,8 +3175,7 @@ app.get('/traveler/imagenes_alojamientos/alojamiento/:id', (req, res) => {
  * @swagger
  * /traveler/imagenes_alojamientos:
  *   post:
- *     summary: Create a new imagen_alojamiento
- *     description: Add a new imagen_alojamiento to the database.
+ *     summary: Crear una nueva imagen de alojamiento
  *     tags: [Imagenes Alojamientos]
  *     requestBody:
  *       required: true
@@ -3058,7 +3190,7 @@ app.get('/traveler/imagenes_alojamientos/alojamiento/:id', (req, res) => {
  *                 type: string
  *     responses:
  *       200:
- *         description: Successfully created imagen_alojamiento
+ *         description: Imagen de alojamiento creada exitosamente
  *         content:
  *           application/json:
  *             schema:
@@ -3067,9 +3199,9 @@ app.get('/traveler/imagenes_alojamientos/alojamiento/:id', (req, res) => {
  *                 id:
  *                   type: integer
  *       500:
- *         description: Error creating imagen_alojamiento
+ *         description: Error al crear la imagen de alojamiento
  */
-app.post('/traveler/imagenes_alojamientos', authenticateToken,(req, res) => {
+app.post('/traveler/imagenes_alojamientos', authenticateToken, (req, res) => {
     const { id_alojamiento, nombre_imagen_alojamiento } = req.body;
     db.query('INSERT INTO traveler.imagenes_alojamientos (id_alojamiento, nombre_imagen_alojamiento) VALUES (?, ?)', [id_alojamiento, nombre_imagen_alojamiento], (err, result) => {
         if (err) {
@@ -3085,16 +3217,15 @@ app.post('/traveler/imagenes_alojamientos', authenticateToken,(req, res) => {
  * @swagger
  * /traveler/imagenes_alojamientos/{id}:
  *   put:
- *     summary: Update an existing imagen_alojamiento by ID
- *     description: Update the details of an existing imagen_alojamiento.
+ *     summary: Actualizar una imagen de alojamiento por ID
  *     tags: [Imagenes Alojamientos]
  *     parameters:
  *       - in: path
  *         name: id
  *         required: true
- *         description: The ID of the imagen_alojamiento to update.
  *         schema:
  *           type: integer
+ *         description: ID de la imagen
  *     requestBody:
  *       required: true
  *       content:
@@ -3108,19 +3239,11 @@ app.post('/traveler/imagenes_alojamientos', authenticateToken,(req, res) => {
  *                 type: string
  *     responses:
  *       200:
- *         description: Successfully updated imagen_alojamiento
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
+ *         description: Imagen de alojamiento actualizada exitosamente
  *       500:
- *         description: Error updating imagen_alojamiento
+ *         description: Error al actualizar la imagen de alojamiento
  */
-app.put('/traveler/imagenes_alojamientos/:id', authenticateToken,(req, res) => {
+app.put('/traveler/imagenes_alojamientos/:id', authenticateToken, (req, res) => {
     const id = req.params.id;
     const { id_alojamiento, nombre_imagen_alojamiento } = req.body;
     db.query('UPDATE traveler.imagenes_alojamientos SET id_alojamiento = ?, nombre_imagen_alojamiento = ? WHERE id_imagen_alojamiento = ?', [id_alojamiento, nombre_imagen_alojamiento, id], (err, result) => {
@@ -3137,31 +3260,22 @@ app.put('/traveler/imagenes_alojamientos/:id', authenticateToken,(req, res) => {
  * @swagger
  * /traveler/imagenes_alojamientos/{id}:
  *   delete:
- *     summary: Delete an imagen_alojamiento by ID
- *     description: Deletes a specific imagen_alojamiento based on the provided ID.
+ *     summary: Eliminar una imagen de alojamiento por ID
  *     tags: [Imagenes Alojamientos]
  *     parameters:
  *       - in: path
  *         name: id
  *         required: true
- *         description: The ID of the imagen_alojamiento to delete.
  *         schema:
  *           type: integer
+ *         description: ID de la imagen
  *     responses:
  *       200:
- *         description: Successfully deleted imagen_alojamiento
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
+ *         description: Imagen de alojamiento eliminada exitosamente
  *       500:
- *         description: Error deleting imagen_alojamiento
+ *         description: Error al eliminar la imagen de alojamiento
  */
-app.delete('/traveler/imagenes_alojamientos/:id', authenticateToken,(req, res) => {
+app.delete('/traveler/imagenes_alojamientos/:id', authenticateToken, (req, res) => {
     const id = req.params.id;
     db.query('DELETE FROM traveler.imagenes_alojamientos WHERE id_imagen_alojamiento = ?', [id], (err, result) => {
         if (err) {
@@ -3174,7 +3288,40 @@ app.delete('/traveler/imagenes_alojamientos/:id', authenticateToken,(req, res) =
 });
 
 
+
+
+
+
+
 //imagenes actividades
+/**
+ * @swagger
+ * /traveler/imagenes_actividades:
+ *   get:
+ *     summary: Obtener todas las imágenes de actividades
+ *     tags: [Imagenes Actividades]
+ *     responses:
+ *       200:
+ *         description: Lista de imágenes de actividades
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 imagenes_actividades:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id_imagen_actividad:
+ *                         type: integer
+ *                       id_actividad:
+ *                         type: integer
+ *                       nombre_imagen_actividad:
+ *                         type: string
+ *       500:
+ *         description: Error al obtener las imágenes de actividades
+ */
 app.get('/traveler/imagenes_actividades', (req, res) => {
     db.query('SELECT * FROM traveler.imagenes_actividades', (err, results) => {
         if (err) {
@@ -3186,6 +3333,103 @@ app.get('/traveler/imagenes_actividades', (req, res) => {
     });
 });
 
+/**
+ * @swagger
+ * /traveler/imagenes_actividades:
+ *   post:
+ *     summary: Crear una nueva imagen de actividad
+ *     tags: [Imagenes Actividades]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               id_actividad:
+ *                 type: integer
+ *               nombre_imagen_actividad:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Imagen de actividad creada exitosamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: integer
+ *       500:
+ *         description: Error al crear la imagen de actividad
+ */
+app.post('/traveler/imagenes_actividades', authenticateToken, (req, res) => {
+    const { id_actividad, nombre_imagen_actividad } = req.body;
+    db.query('INSERT INTO traveler.imagenes_actividades (id_actividad, nombre_imagen_actividad) VALUES (?, ?)', [id_actividad, nombre_imagen_actividad], (err, result) => {
+        if (err) {
+            console.error('Error creating imagen_actividad:', err);
+            res.status(500).json({ error: 'Error creating imagen_actividad' });
+        } else {
+            res.json({ id: result.insertId });
+        }
+    });
+});
+
+/**
+ * @swagger
+ * /traveler/imagenes_actividades/{id}:
+ *   get:
+ *     summary: Obtener una imagen de actividad por ID
+ *     tags: [Imagenes Actividades]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID de la imagen
+ *     responses:
+ *       200:
+ *         description: Información de la imagen de actividad
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 imagen_actividad:
+ *                   type: object
+ *                   properties:
+ *                     id_imagen_actividad:
+ *                       type: integer
+ *                     id_actividad:
+ *                       type: integer
+ *                     nombre_imagen_actividad:
+ *                       type: string
+ *       404:
+ *         description: Imagen de actividad no encontrada
+ *       500:
+ *         description: Error al obtener la imagen de actividad
+ */
+app.get('/traveler/imagenes_actividades/:id', (req, res) => {
+    const id = req.params.id;
+
+    db.query('SELECT * FROM traveler.imagenes_actividades WHERE id_imagen_actividad = ?', [id], (err, results) => {
+        if (err) {
+            console.error('Error fetching imagenes_actividades:', err);
+            res.status(500).json({ error: 'Error fetching imagenes_actividades' });
+        } else {
+            if (results.length === 0) {
+                res.status(404).json({ error: 'Imagen_actividad not found' });
+            } else {
+                res.json({ imagen_actividad: results[0] });
+            }
+        }
+    });
+});
+
+
+
+
 
 
 
@@ -3194,12 +3438,11 @@ app.get('/traveler/imagenes_actividades', (req, res) => {
  * @swagger
  * /traveler/post_blog:
  *   get:
- *     summary: Get all post_blog
- *     description: Retrieves a list of all `post_blog` entries.
+ *     summary: Obtener todos los posts de blog
  *     tags: [Post Blog]
  *     responses:
  *       200:
- *         description: A list of all post_blog entries
+ *         description: Lista de posts de blog
  *         content:
  *           application/json:
  *             schema:
@@ -3210,21 +3453,16 @@ app.get('/traveler/imagenes_actividades', (req, res) => {
  *                   items:
  *                     type: object
  *                     properties:
- *                       id_post_blog:
+ *                       id_post:
  *                         type: integer
- *                         description: The unique identifier of the post.
- *                       title:
+ *                       id_usuario:
+ *                         type: integer
+ *                       titulo:
  *                         type: string
- *                         description: The title of the post.
- *                       content:
+ *                       mensaje_post:
  *                         type: string
- *                         description: The content of the post.
- *                       created_at:
- *                         type: string
- *                         format: date-time
- *                         description: The date and time when the post was created.
  *       500:
- *         description: Error fetching post_blog
+ *         description: Error al obtener los posts de blog
  */
 app.get('/traveler/post_blog', (req, res) => {
     db.query('SELECT * FROM traveler.post_blog', (err, results) => {
@@ -3241,19 +3479,18 @@ app.get('/traveler/post_blog', (req, res) => {
  * @swagger
  * /traveler/post_blog/{id}:
  *   get:
- *     summary: Get post_blog by ID
- *     description: Retrieves a specific `post_blog` entry by its ID.
+ *     summary: Obtener un post de blog por ID
  *     tags: [Post Blog]
  *     parameters:
  *       - in: path
  *         name: id
  *         required: true
- *         description: The ID of the `post_blog` entry to retrieve.
  *         schema:
  *           type: integer
+ *         description: ID del post
  *     responses:
  *       200:
- *         description: The `post_blog` entry with the specified ID
+ *         description: Información del post de blog
  *         content:
  *           application/json:
  *             schema:
@@ -3262,23 +3499,18 @@ app.get('/traveler/post_blog', (req, res) => {
  *                 post_blog:
  *                   type: object
  *                   properties:
- *                     id_post_blog:
+ *                     id_post:
  *                       type: integer
- *                       description: The unique identifier of the post.
- *                     title:
+ *                     id_usuario:
+ *                       type: integer
+ *                     titulo:
  *                       type: string
- *                       description: The title of the post.
- *                     content:
+ *                     mensaje_post:
  *                       type: string
- *                       description: The content of the post.
- *                     created_at:
- *                       type: string
- *                       format: date-time
- *                       description: The date and time when the post was created.
  *       404:
- *         description: Post_blog not found
+ *         description: Post de blog no encontrado
  *       500:
- *         description: Error fetching post_blog
+ *         description: Error al obtener el post de blog
  */
 app.get('/traveler/post_blog/:id', (req, res) => {
     const id = req.params.id;
@@ -3301,8 +3533,7 @@ app.get('/traveler/post_blog/:id', (req, res) => {
  * @swagger
  * /traveler/post_blog:
  *   post:
- *     summary: Create a new post_blog entry
- *     description: Creates a new `post_blog` entry with the provided information.
+ *     summary: Crear un nuevo post de blog
  *     tags: [Post Blog]
  *     requestBody:
  *       required: true
@@ -3313,16 +3544,13 @@ app.get('/traveler/post_blog/:id', (req, res) => {
  *             properties:
  *               id_usuario:
  *                 type: integer
- *                 description: The ID of the user creating the post.
  *               titulo:
  *                 type: string
- *                 description: The title of the post.
  *               contenido:
  *                 type: string
- *                 description: The content of the post.
  *     responses:
  *       200:
- *         description: The ID of the created post_blog entry
+ *         description: Post de blog creado exitosamente
  *         content:
  *           application/json:
  *             schema:
@@ -3330,11 +3558,10 @@ app.get('/traveler/post_blog/:id', (req, res) => {
  *               properties:
  *                 id:
  *                   type: integer
- *                   description: The ID of the newly created post_blog entry.
  *       500:
- *         description: Error creating post_blog
+ *         description: Error al crear el post de blog
  */
-app.post('/traveler/post_blog', authenticateToken,(req, res) => {
+app.post('/traveler/post_blog', authenticateToken, (req, res) => {
     const { id_usuario, titulo, contenido } = req.body;
     db.query('INSERT INTO traveler.post_blog (id_usuario, titulo, mensaje_post) VALUES (?, ?, ?)', [id_usuario, titulo, contenido], (err, result) => {
         if (err) {
@@ -3350,16 +3577,15 @@ app.post('/traveler/post_blog', authenticateToken,(req, res) => {
  * @swagger
  * /traveler/post_blog/{id}:
  *   put:
- *     summary: Update an existing post_blog entry by ID
- *     description: Updates an existing `post_blog` entry with the provided ID and new information.
+ *     summary: Actualizar un post de blog por ID
  *     tags: [Post Blog]
  *     parameters:
  *       - in: path
  *         name: id
  *         required: true
- *         description: The ID of the post_blog entry to update.
  *         schema:
  *           type: integer
+ *         description: ID del post
  *     requestBody:
  *       required: true
  *       content:
@@ -3369,16 +3595,13 @@ app.post('/traveler/post_blog', authenticateToken,(req, res) => {
  *             properties:
  *               id_usuario:
  *                 type: integer
- *                 description: The ID of the user updating the post.
  *               titulo:
  *                 type: string
- *                 description: The title of the post.
  *               contenido:
  *                 type: string
- *                 description: The updated content of the post.
  *     responses:
  *       200:
- *         description: The post_blog entry was updated successfully.
+ *         description: Post de blog actualizado exitosamente
  *         content:
  *           application/json:
  *             schema:
@@ -3386,11 +3609,10 @@ app.post('/traveler/post_blog', authenticateToken,(req, res) => {
  *               properties:
  *                 success:
  *                   type: boolean
- *                   description: Indicates whether the update was successful.
  *       500:
- *         description: Error updating post_blog
+ *         description: Error al actualizar el post de blog
  */
-app.put('/traveler/post_blog/:id', authenticateToken,(req, res) => {
+app.put('/traveler/post_blog/:id', authenticateToken, (req, res) => {
     const id = req.params.id;
     const { id_usuario, titulo, contenido } = req.body;
     db.query('UPDATE traveler.post_blog SET id_usuario = ?, titulo = ?, mensaje_post = ? WHERE id_post = ?', [id_usuario, titulo, contenido, id], (err, result) => {
@@ -3407,19 +3629,18 @@ app.put('/traveler/post_blog/:id', authenticateToken,(req, res) => {
  * @swagger
  * /traveler/post_blog/{id}:
  *   delete:
- *     summary: Delete a post_blog entry by ID
- *     description: Deletes the `post_blog` entry with the provided ID.
+ *     summary: Eliminar un post de blog por ID
  *     tags: [Post Blog]
  *     parameters:
  *       - in: path
  *         name: id
  *         required: true
- *         description: The ID of the post_blog entry to delete.
  *         schema:
  *           type: integer
+ *         description: ID del post
  *     responses:
  *       200:
- *         description: The post_blog entry was deleted successfully.
+ *         description: Post de blog eliminado exitosamente
  *         content:
  *           application/json:
  *             schema:
@@ -3427,11 +3648,10 @@ app.put('/traveler/post_blog/:id', authenticateToken,(req, res) => {
  *               properties:
  *                 success:
  *                   type: boolean
- *                   description: Indicates whether the deletion was successful.
  *       500:
- *         description: Error deleting post_blog
+ *         description: Error al eliminar el post de blog
  */
-app.delete('/traveler/post_blog/:id', authenticateToken,(req, res) => {
+app.delete('/traveler/post_blog/:id', authenticateToken, (req, res) => {
     const id = req.params.id;
     db.query('DELETE FROM traveler.post_blog WHERE id_post = ?', [id], (err, result) => {
         if (err) {
@@ -3446,18 +3666,19 @@ app.delete('/traveler/post_blog/:id', authenticateToken,(req, res) => {
 
 
 
-// Reservas Alojamientos
 
+
+
+// Reservas Alojamientos
 /**
  * @swagger
  * /traveler/reservas_actividades:
  *   get:
- *     summary: Get all reservas_actividades entries
- *     description: Retrieves all the `reservas_actividades` entries.
+ *     summary: Obtener todas las reservas de actividades
  *     tags: [Reservas Actividades]
  *     responses:
  *       200:
- *         description: List of reservas_actividades entries.
+ *         description: Lista de reservas de actividades
  *         content:
  *           application/json:
  *             schema:
@@ -3468,24 +3689,16 @@ app.delete('/traveler/post_blog/:id', authenticateToken,(req, res) => {
  *                   items:
  *                     type: object
  *                     properties:
- *                       id_reserva:
+ *                       id_reserva_actividad:
  *                         type: integer
- *                         description: The ID of the reservation.
  *                       id_actividad:
  *                         type: integer
- *                         description: The ID of the activity.
+ *                       fecha_reserva_actividad:
+ *                         type: string
  *                       id_usuario:
  *                         type: integer
- *                         description: The ID of the user who made the reservation.
- *                       fecha_reserva:
- *                         type: string
- *                         format: date-time
- *                         description: The date and time when the reservation was made.
- *                       estado_reserva:
- *                         type: string
- *                         description: The status of the reservation.
  *       500:
- *         description: Error fetching reservas_actividades
+ *         description: Error al obtener las reservas de actividades
  */
 app.get('/traveler/reservas_actividades', authenticateToken, (req, res) => {
     db.query('SELECT * FROM traveler.reservas_actividades', (err, results) => {
@@ -3502,19 +3715,18 @@ app.get('/traveler/reservas_actividades', authenticateToken, (req, res) => {
  * @swagger
  * /traveler/reservas_actividades/{id}:
  *   get:
- *     summary: Get a reservas_actividad by ID
- *     description: Retrieves a specific `reserva_actividad` entry by its ID.
+ *     summary: Obtener una reserva de actividad por ID
  *     tags: [Reservas Actividades]
  *     parameters:
  *       - in: path
  *         name: id
  *         required: true
- *         description: The ID of the reserva_actividad.
  *         schema:
  *           type: integer
+ *         description: ID de la reserva de actividad
  *     responses:
  *       200:
- *         description: The requested reserva_actividad entry.
+ *         description: Información de la reserva de actividad
  *         content:
  *           application/json:
  *             schema:
@@ -3525,24 +3737,16 @@ app.get('/traveler/reservas_actividades', authenticateToken, (req, res) => {
  *                   properties:
  *                     id_reserva_actividad:
  *                       type: integer
- *                       description: The ID of the reserva_actividad.
  *                     id_actividad:
  *                       type: integer
- *                       description: The ID of the activity.
+ *                     fecha_reserva_actividad:
+ *                       type: string
  *                     id_usuario:
  *                       type: integer
- *                       description: The ID of the user who made the reservation.
- *                     fecha_reserva:
- *                       type: string
- *                       format: date-time
- *                       description: The date and time when the reservation was made.
- *                     estado_reserva:
- *                       type: string
- *                       description: The status of the reservation.
  *       404:
- *         description: Reserva_actividad not found
+ *         description: Reserva de actividad no encontrada
  *       500:
- *         description: Error fetching reserva_actividad
+ *         description: Error al obtener la reserva de actividad
  */
 app.get('/traveler/reservas_actividades/:id', authenticateToken, (req, res) => {
     const id = req.params.id;
@@ -3565,8 +3769,7 @@ app.get('/traveler/reservas_actividades/:id', authenticateToken, (req, res) => {
  * @swagger
  * /traveler/reservas_actividades:
  *   post:
- *     summary: Create a new reserva_actividad
- *     description: Creates a new reservation for an activity.
+ *     summary: Crear una nueva reserva de actividad
  *     tags: [Reservas Actividades]
  *     requestBody:
  *       required: true
@@ -3577,17 +3780,13 @@ app.get('/traveler/reservas_actividades/:id', authenticateToken, (req, res) => {
  *             properties:
  *               id_actividad:
  *                 type: integer
- *                 description: The ID of the activity being reserved.
  *               fecha_reserva_actividad:
  *                 type: string
- *                 format: date-time
- *                 description: The date and time when the reservation is made.
  *               id_usuario:
  *                 type: integer
- *                 description: The ID of the user making the reservation.
  *     responses:
  *       200:
- *         description: The ID of the created reserva_actividad.
+ *         description: Reserva de actividad creada exitosamente
  *         content:
  *           application/json:
  *             schema:
@@ -3595,11 +3794,10 @@ app.get('/traveler/reservas_actividades/:id', authenticateToken, (req, res) => {
  *               properties:
  *                 id:
  *                   type: integer
- *                   description: The ID of the created reserva_actividad.
  *       500:
- *         description: Error creating reserva_actividad
+ *         description: Error al crear la reserva de actividad
  */
-app.post('/traveler/reservas_actividades', authenticateToken,(req, res) => {
+app.post('/traveler/reservas_actividades', authenticateToken, (req, res) => {
     const { id_actividad, fecha_reserva_actividad, id_usuario } = req.body;
     db.query('INSERT INTO traveler.reservas_actividades (id_actividad, fecha_reserva_actividad, id_usuario) VALUES (?, ?, ?)', [id_actividad, fecha_reserva_actividad, id_usuario], (err, result) => {
         if (err) {
@@ -3615,16 +3813,15 @@ app.post('/traveler/reservas_actividades', authenticateToken,(req, res) => {
  * @swagger
  * /traveler/reservas_actividades/{id}:
  *   put:
- *     summary: Update an existing reserva_actividad by ID
- *     description: Updates the details of an existing reserva_actividad.
+ *     summary: Actualizar una reserva de actividad por ID
  *     tags: [Reservas Actividades]
  *     parameters:
- *       - name: id
- *         in: path
+ *       - in: path
+ *         name: id
  *         required: true
- *         description: The ID of the reserva_actividad to be updated.
  *         schema:
  *           type: integer
+ *         description: ID de la reserva de actividad
  *     requestBody:
  *       required: true
  *       content:
@@ -3634,17 +3831,13 @@ app.post('/traveler/reservas_actividades', authenticateToken,(req, res) => {
  *             properties:
  *               id_actividad:
  *                 type: integer
- *                 description: The updated ID of the activity being reserved.
  *               fecha_reserva_actividad:
  *                 type: string
- *                 format: date-time
- *                 description: The updated date and time when the reservation is made.
  *               id_usuario:
  *                 type: integer
- *                 description: The updated ID of the user making the reservation.
  *     responses:
  *       200:
- *         description: Successful update of the reserva_actividad.
+ *         description: Reserva de actividad actualizada exitosamente
  *         content:
  *           application/json:
  *             schema:
@@ -3652,13 +3845,10 @@ app.post('/traveler/reservas_actividades', authenticateToken,(req, res) => {
  *               properties:
  *                 success:
  *                   type: boolean
- *                   description: Whether the update was successful.
  *       500:
- *         description: Error updating reserva_actividad
- *       404:
- *         description: reserva_actividad not found
+ *         description: Error al actualizar la reserva de actividad
  */
-app.put('/traveler/reservas_actividades/:id', authenticateToken,(req, res) => {
+app.put('/traveler/reservas_actividades/:id', authenticateToken, (req, res) => {
     const id = req.params.id;
     const { id_actividad, fecha_reserva_actividad, id_usuario } = req.body;
     db.query('UPDATE traveler.reservas_actividades SET id_actividad = ?, fecha_reserva_actividad = ?, id_usuario = ? WHERE id_reserva_actividad = ?', [id_actividad, fecha_reserva_actividad, id_usuario, id], (err, result) => {
@@ -3675,19 +3865,18 @@ app.put('/traveler/reservas_actividades/:id', authenticateToken,(req, res) => {
  * @swagger
  * /traveler/reservas_actividades/{id}:
  *   delete:
- *     summary: Delete a reserva_actividad by ID
- *     description: Deletes a specific reserva_actividad by its ID.
+ *     summary: Eliminar una reserva de actividad por ID
  *     tags: [Reservas Actividades]
  *     parameters:
- *       - name: id
- *         in: path
+ *       - in: path
+ *         name: id
  *         required: true
- *         description: The ID of the reserva_actividad to be deleted.
  *         schema:
  *           type: integer
+ *         description: ID de la reserva de actividad
  *     responses:
  *       200:
- *         description: Successful deletion of the reserva_actividad.
+ *         description: Reserva de actividad eliminada exitosamente
  *         content:
  *           application/json:
  *             schema:
@@ -3695,13 +3884,10 @@ app.put('/traveler/reservas_actividades/:id', authenticateToken,(req, res) => {
  *               properties:
  *                 success:
  *                   type: boolean
- *                   description: Whether the deletion was successful.
  *       500:
- *         description: Error deleting reserva_actividad
- *       404:
- *         description: reserva_actividad not found
+ *         description: Error al eliminar la reserva de actividad
  */
-app.delete('/traveler/reservas_actividades/:id', authenticateToken,(req, res) => {
+app.delete('/traveler/reservas_actividades/:id', authenticateToken, (req, res) => {
     const id = req.params.id;
     db.query('DELETE FROM traveler.reservas_actividades WHERE id_reserva_actividad = ?', [id], (err, result) => {
         if (err) {
@@ -3716,18 +3902,19 @@ app.delete('/traveler/reservas_actividades/:id', authenticateToken,(req, res) =>
 
 
 
-// Reservas Alojamientos
 
+
+
+// Reservas Alojamientos
 /**
  * @swagger
  * /traveler/reservas_alojamientos:
  *   get:
- *     summary: Get all reservas_alojamientos
- *     description: Retrieves all the reservas_alojamientos (accommodation bookings) from the database.
+ *     summary: Obtener todas las reservas de alojamientos
  *     tags: [Reservas Alojamientos]
  *     responses:
  *       200:
- *         description: A list of reservas_alojamientos
+ *         description: Lista de reservas de alojamientos
  *         content:
  *           application/json:
  *             schema:
@@ -3740,25 +3927,22 @@ app.delete('/traveler/reservas_actividades/:id', authenticateToken,(req, res) =>
  *                     properties:
  *                       id_reserva_alojamiento:
  *                         type: integer
- *                         description: The ID of the reserva_alojamiento.
  *                       id_alojamiento:
  *                         type: integer
- *                         description: The ID of the accommodation.
  *                       id_usuario:
  *                         type: integer
- *                         description: The ID of the user who made the reservation.
  *                       fecha_reserva_inicio_alojamiento:
  *                         type: string
- *                         format: date
- *                         description: The start date of the reservation.
  *                       fecha_reserva_final_alojamiento:
  *                         type: string
- *                         format: date
- *                         description: The end date of the reservation.
+ *                       hora_entrada_alojamiento:
+ *                         type: string
+ *                       hora_salida_alojamiento:
+ *                         type: string
  *       500:
- *         description: Error fetching reservas_alojamientos
+ *         description: Error al obtener las reservas de alojamientos
  */
-app.get('/traveler/reservas_alojamientos', authenticateToken,(req, res) => {
+app.get('/traveler/reservas_alojamientos', authenticateToken, (req, res) => {
     db.query('SELECT * FROM traveler.reservas_alojamientos', (err, results) => {
         if (err) {
             console.error('Error fetching reservas_alojamientos:', err);
@@ -3773,19 +3957,18 @@ app.get('/traveler/reservas_alojamientos', authenticateToken,(req, res) => {
  * @swagger
  * /traveler/reservas_alojamientos/{id}:
  *   get:
- *     summary: Get a reserva_alojamiento by ID
- *     description: Retrieves a specific reserva_alojamiento (accommodation booking) by its ID from the database.
+ *     summary: Obtener una reserva de alojamiento por ID
  *     tags: [Reservas Alojamientos]
  *     parameters:
- *       - name: id
- *         in: path
+ *       - in: path
+ *         name: id
  *         required: true
- *         description: The ID of the reserva_alojamiento to retrieve.
  *         schema:
  *           type: integer
+ *         description: ID de la reserva de alojamiento
  *     responses:
  *       200:
- *         description: The requested reserva_alojamiento details
+ *         description: Información de la reserva de alojamiento
  *         content:
  *           application/json:
  *             schema:
@@ -3796,27 +3979,24 @@ app.get('/traveler/reservas_alojamientos', authenticateToken,(req, res) => {
  *                   properties:
  *                     id_reserva_alojamiento:
  *                       type: integer
- *                       description: The ID of the reserva_alojamiento.
  *                     id_alojamiento:
  *                       type: integer
- *                       description: The ID of the accommodation.
  *                     id_usuario:
  *                       type: integer
- *                       description: The ID of the user who made the reservation.
  *                     fecha_reserva_inicio_alojamiento:
  *                       type: string
- *                       format: date
- *                       description: The start date of the reservation.
  *                     fecha_reserva_final_alojamiento:
  *                       type: string
- *                       format: date
- *                       description: The end date of the reservation.
+ *                     hora_entrada_alojamiento:
+ *                       type: string
+ *                     hora_salida_alojamiento:
+ *                       type: string
  *       404:
- *         description: Reserva_alojamiento not found
+ *         description: Reserva de alojamiento no encontrada
  *       500:
- *         description: Error fetching reservas_alojamientos
+ *         description: Error al obtener la reserva de alojamiento
  */
-app.get('/traveler/reservas_alojamientos/:id', authenticateToken,(req, res) => {
+app.get('/traveler/reservas_alojamientos/:id', authenticateToken, (req, res) => {
     const id = req.params.id;
 
     db.query('SELECT * FROM traveler.reservas_alojamientos WHERE id_reserva_alojamiento = ?', [id], (err, results) => {
@@ -3837,8 +4017,7 @@ app.get('/traveler/reservas_alojamientos/:id', authenticateToken,(req, res) => {
  * @swagger
  * /traveler/reservas_alojamientos:
  *   post:
- *     summary: Create a new reserva_alojamiento (accommodation booking)
- *     description: Creates a new reserva_alojamiento (accommodation booking) with provided details in the database.
+ *     summary: Crear una nueva reserva de alojamiento
  *     tags: [Reservas Alojamientos]
  *     requestBody:
  *       required: true
@@ -3849,21 +4028,21 @@ app.get('/traveler/reservas_alojamientos/:id', authenticateToken,(req, res) => {
  *             properties:
  *               id_alojamiento:
  *                 type: integer
- *                 description: The ID of the accommodation being booked.
  *               id_usuario:
  *                 type: integer
- *                 description: The ID of the user making the reservation.
- *               fecha_reserva_inicio_alojamiento:
+ *               fecha_reserva_alojamiento:
  *                 type: string
- *                 format: date
- *                 description: The start date of the accommodation reservation.
- *               fecha_reserva_final_alojamiento:
+ *               fecha_entrada_alojamiento:
  *                 type: string
- *                 format: date
- *                 description: The end date of the accommodation reservation.
+ *               fecha_salida_alojamiento:
+ *                 type: string
+ *               hora_entrada_alojamiento:
+ *                 type: string
+ *               hora_salida_alojamiento:
+ *                 type: string
  *     responses:
  *       200:
- *         description: Reservation successfully created
+ *         description: Reserva de alojamiento creada exitosamente
  *         content:
  *           application/json:
  *             schema:
@@ -3871,11 +4050,10 @@ app.get('/traveler/reservas_alojamientos/:id', authenticateToken,(req, res) => {
  *               properties:
  *                 id:
  *                   type: integer
- *                   description: The ID of the newly created reserva_alojamiento.
  *       500:
- *         description: Error creating reserva_alojamiento
+ *         description: Error al crear la reserva de alojamiento
  */
-app.post('/traveler/reservas_alojamientos', authenticateToken,(req, res) => {
+app.post('/traveler/reservas_alojamientos', authenticateToken, (req, res) => {
     const { id_alojamiento, id_usuario, fecha_reserva_alojamiento, fecha_entrada_alojamiento, fecha_salida_alojamiento, hora_entrada_alojamiento, hora_salida_alojamiento } = req.body;
     db.query('INSERT INTO traveler.reservas_alojamientos (id_alojamiento, id_usuario, fecha_reserva_inicio_alojamiento, fecha_reserva_final_alojamiento) VALUES (?, ?, ?, ?)', [id_alojamiento, id_usuario, fecha_reserva_alojamiento, fecha_entrada_alojamiento, fecha_salida_alojamiento, hora_entrada_alojamiento, hora_salida_alojamiento], (err, result) => {
         if (err) {
@@ -3891,16 +4069,15 @@ app.post('/traveler/reservas_alojamientos', authenticateToken,(req, res) => {
  * @swagger
  * /traveler/reservas_alojamientos/{id}:
  *   put:
- *     summary: Update an existing reserva_alojamiento (accommodation booking) by ID
- *     description: Updates the details of an existing reserva_alojamiento (accommodation booking) in the database.
+ *     summary: Actualizar una reserva de alojamiento por ID
  *     tags: [Reservas Alojamientos]
  *     parameters:
- *       - name: id
- *         in: path
+ *       - in: path
+ *         name: id
  *         required: true
- *         description: The ID of the reserva_alojamiento to be updated.
  *         schema:
  *           type: integer
+ *         description: ID de la reserva de alojamiento
  *     requestBody:
  *       required: true
  *       content:
@@ -3910,21 +4087,21 @@ app.post('/traveler/reservas_alojamientos', authenticateToken,(req, res) => {
  *             properties:
  *               id_alojamiento:
  *                 type: integer
- *                 description: The ID of the accommodation being booked.
  *               id_usuario:
  *                 type: integer
- *                 description: The ID of the user making the reservation.
- *               fecha_reserva_inicio_alojamiento:
+ *               fecha_reserva_alojamiento:
  *                 type: string
- *                 format: date
- *                 description: The start date of the accommodation reservation.
- *               fecha_reserva_final_alojamiento:
+ *               fecha_entrada_alojamiento:
  *                 type: string
- *                 format: date
- *                 description: The end date of the accommodation reservation.
+ *               fecha_salida_alojamiento:
+ *                 type: string
+ *               hora_entrada_alojamiento:
+ *                 type: string
+ *               hora_salida_alojamiento:
+ *                 type: string
  *     responses:
  *       200:
- *         description: Reservation successfully updated
+ *         description: Reserva de alojamiento actualizada exitosamente
  *         content:
  *           application/json:
  *             schema:
@@ -3932,13 +4109,10 @@ app.post('/traveler/reservas_alojamientos', authenticateToken,(req, res) => {
  *               properties:
  *                 success:
  *                   type: boolean
- *                   description: Indicates whether the update was successful.
  *       500:
- *         description: Error updating reserva_alojamiento
- *       404:
- *         description: reserva_alojamiento not found
+ *         description: Error al actualizar la reserva de alojamiento
  */
-app.put('/traveler/reservas_alojamientos/:id', authenticateToken,(req, res) => {
+app.put('/traveler/reservas_alojamientos/:id', authenticateToken, (req, res) => {
     const id = req.params.id;
     const { id_alojamiento, id_usuario, fecha_reserva_alojamiento, fecha_entrada_alojamiento, fecha_salida_alojamiento, hora_entrada_alojamiento, hora_salida_alojamiento } = req.body;
     db.query('UPDATE traveler.reservas_alojamientos SET id_alojamiento = ?, id_usuario = ?, fecha_reserva_inicio_alojamiento = ?, fecha_reserva_final_alojamiento = ? WHERE id_reserva_alojamiento = ?', [id_alojamiento, id_usuario, fecha_reserva_alojamiento, fecha_entrada_alojamiento, fecha_salida_alojamiento, hora_entrada_alojamiento, hora_salida_alojamiento, id], (err, result) => {
@@ -3955,19 +4129,18 @@ app.put('/traveler/reservas_alojamientos/:id', authenticateToken,(req, res) => {
  * @swagger
  * /traveler/reservas_alojamientos/{id}:
  *   delete:
- *     summary: Delete a reserva_alojamiento (accommodation booking) by ID
- *     description: Deletes a reserva_alojamiento (accommodation booking) from the database based on the given ID.
+ *     summary: Eliminar una reserva de alojamiento por ID
  *     tags: [Reservas Alojamientos]
  *     parameters:
- *       - name: id
- *         in: path
+ *       - in: path
+ *         name: id
  *         required: true
- *         description: The ID of the reserva_alojamiento to be deleted.
  *         schema:
  *           type: integer
+ *         description: ID de la reserva de alojamiento
  *     responses:
  *       200:
- *         description: Reservation successfully deleted
+ *         description: Reserva de alojamiento eliminada exitosamente
  *         content:
  *           application/json:
  *             schema:
@@ -3975,13 +4148,10 @@ app.put('/traveler/reservas_alojamientos/:id', authenticateToken,(req, res) => {
  *               properties:
  *                 success:
  *                   type: boolean
- *                   description: Indicates whether the deletion was successful.
  *       500:
- *         description: Error deleting reserva_alojamiento
- *       404:
- *         description: reserva_alojamiento not found
+ *         description: Error al eliminar la reserva de alojamiento
  */
-app.delete('/traveler/reservas_alojamientos/:id', authenticateToken,(req, res) => {
+app.delete('/traveler/reservas_alojamientos/:id', authenticateToken, (req, res) => {
     const id = req.params.id;
     db.query('DELETE FROM traveler.reservas_alojamientos WHERE id_reserva_alojamiento = ?', [id], (err, result) => {
         if (err) {
@@ -3996,18 +4166,19 @@ app.delete('/traveler/reservas_alojamientos/:id', authenticateToken,(req, res) =
 
 
 
-// Reservas Vehiculos
 
+
+
+// Reservas Vehiculos
 /**
  * @swagger
  * /traveler/reservas_vehiculos:
  *   get:
- *     summary: Get all reservas_vehiculos (vehicle reservations)
- *     description: Retrieves all reservas_vehiculos (vehicle reservations) from the database.
- *     tags: [Reservas Vehiculos]
+ *     summary: Obtener todas las reservas de vehículos
+ *     tags: [Reservas Vehículos]
  *     responses:
  *       200:
- *         description: Successfully retrieved all reservas_vehiculos
+ *         description: Lista de reservas de vehículos
  *         content:
  *           application/json:
  *             schema:
@@ -4020,25 +4191,14 @@ app.delete('/traveler/reservas_alojamientos/:id', authenticateToken,(req, res) =
  *                     properties:
  *                       id_reserva_vehiculo:
  *                         type: integer
- *                         description: The ID of the vehicle reservation.
- *                       id_vehiculo:
- *                         type: integer
- *                         description: The ID of the vehicle being reserved.
  *                       id_usuario:
  *                         type: integer
- *                         description: The ID of the user making the reservation.
- *                       fecha_reserva_inicio_vehiculo:
+ *                       fecha_reserva_vehiculo:
  *                         type: string
- *                         format: date
- *                         description: The start date of the vehicle reservation.
- *                       fecha_reserva_final_vehiculo:
- *                         type: string
- *                         format: date
- *                         description: The end date of the vehicle reservation.
  *       500:
- *         description: Error fetching reservas_vehiculos
+ *         description: Error al obtener las reservas de vehículos
  */
-app.get('/traveler/reservas_vehiculos', authenticateToken,(req, res) => {
+app.get('/traveler/reservas_vehiculos', authenticateToken, (req, res) => {
     db.query('SELECT * FROM traveler.reservas_vehiculos', (err, results) => {
         if (err) {
             console.error('Error fetching reservas_vehiculos:', err);
@@ -4053,19 +4213,18 @@ app.get('/traveler/reservas_vehiculos', authenticateToken,(req, res) => {
  * @swagger
  * /traveler/reservas_vehiculos/{id}:
  *   get:
- *     summary: Get a reservas_vehiculos (vehicle reservation) by ID
- *     description: Retrieves a specific reservas_vehiculos (vehicle reservation) from the database using the provided reservation ID.
- *     tags: [Reservas Vehiculos]
+ *     summary: Obtener una reserva de vehículo por ID
+ *     tags: [Reservas Vehículos]
  *     parameters:
  *       - in: path
  *         name: id
  *         required: true
- *         description: The ID of the vehicle reservation.
  *         schema:
  *           type: integer
+ *         description: ID de la reserva de vehículo
  *     responses:
  *       200:
- *         description: Successfully retrieved the reservas_vehiculos
+ *         description: Información de la reserva de vehículo
  *         content:
  *           application/json:
  *             schema:
@@ -4076,27 +4235,16 @@ app.get('/traveler/reservas_vehiculos', authenticateToken,(req, res) => {
  *                   properties:
  *                     id_reserva_vehiculo:
  *                       type: integer
- *                       description: The ID of the vehicle reservation.
- *                     id_vehiculo:
- *                       type: integer
- *                       description: The ID of the vehicle being reserved.
  *                     id_usuario:
  *                       type: integer
- *                       description: The ID of the user making the reservation.
- *                     fecha_reserva_inicio_vehiculo:
+ *                     fecha_reserva_vehiculo:
  *                       type: string
- *                       format: date
- *                       description: The start date of the vehicle reservation.
- *                     fecha_reserva_final_vehiculo:
- *                       type: string
- *                       format: date
- *                       description: The end date of the vehicle reservation.
  *       404:
- *         description: Reserva_vehiculo not found
+ *         description: Reserva de vehículo no encontrada
  *       500:
- *         description: Error fetching reservas_vehiculos
+ *         description: Error al obtener la reserva de vehículo
  */
-app.get('/traveler/reservas_vehiculos/:id', authenticateToken,(req, res) => {
+app.get('/traveler/reservas_vehiculos/:id', authenticateToken, (req, res) => {
     const id = req.params.id;
 
     db.query('SELECT * FROM traveler.reservas_vehiculos WHERE id_reserva_vehiculo = ?', [id], (err, results) => {
@@ -4117,9 +4265,8 @@ app.get('/traveler/reservas_vehiculos/:id', authenticateToken,(req, res) => {
  * @swagger
  * /traveler/reservas_vehiculos:
  *   post:
- *     summary: Create a new reservas_vehiculos (vehicle reservation)
- *     description: Creates a new vehicle reservation for a user with the provided reservation details.
- *     tags: [Reservas Vehiculos]
+ *     summary: Crear una nueva reserva de vehículo
+ *     tags: [Reservas Vehículos]
  *     requestBody:
  *       required: true
  *       content:
@@ -4129,17 +4276,11 @@ app.get('/traveler/reservas_vehiculos/:id', authenticateToken,(req, res) => {
  *             properties:
  *               id_usuario:
  *                 type: integer
- *                 description: The ID of the user making the reservation.
  *               fecha_reserva_vehiculo:
  *                 type: string
- *                 format: date
- *                 description: The date of the vehicle reservation.
- *             required:
- *               - id_usuario
- *               - fecha_reserva_vehiculo
  *     responses:
  *       200:
- *         description: Successfully created the reserva_vehiculo
+ *         description: Reserva de vehículo creada exitosamente
  *         content:
  *           application/json:
  *             schema:
@@ -4147,11 +4288,10 @@ app.get('/traveler/reservas_vehiculos/:id', authenticateToken,(req, res) => {
  *               properties:
  *                 id:
  *                   type: integer
- *                   description: The ID of the created vehicle reservation.
  *       500:
- *         description: Error creating reserva_vehiculo
+ *         description: Error al crear la reserva de vehículo
  */
-app.post('/traveler/reservas_vehiculos', authenticateToken,(req, res) => {
+app.post('/traveler/reservas_vehiculos', authenticateToken, (req, res) => {
     const { id_usuario, fecha_reserva_vehiculo } = req.body;
     db.query('INSERT INTO traveler.reservas_vehiculos (id_usuario, fecha_reserva_vehiculo) VALUES (?, ?)', [id_usuario, fecha_reserva_vehiculo], (err, result) => {
         if (err) {
@@ -4167,16 +4307,15 @@ app.post('/traveler/reservas_vehiculos', authenticateToken,(req, res) => {
  * @swagger
  * /traveler/reservas_vehiculos/{id}:
  *   put:
- *     summary: Update an existing reservas_vehiculos (vehicle reservation) by ID
- *     description: Updates the vehicle reservation details for a specific reservation ID.
- *     tags: [Reservas Vehiculos]
+ *     summary: Actualizar una reserva de vehículo por ID
+ *     tags: [Reservas Vehículos]
  *     parameters:
  *       - in: path
  *         name: id
  *         required: true
- *         description: The ID of the vehicle reservation to update.
  *         schema:
  *           type: integer
+ *         description: ID de la reserva de vehículo
  *     requestBody:
  *       required: true
  *       content:
@@ -4186,17 +4325,11 @@ app.post('/traveler/reservas_vehiculos', authenticateToken,(req, res) => {
  *             properties:
  *               id_usuario:
  *                 type: integer
- *                 description: The ID of the user making the reservation.
  *               fecha_reserva_vehiculo:
  *                 type: string
- *                 format: date
- *                 description: The updated date of the vehicle reservation.
- *             required:
- *               - id_usuario
- *               - fecha_reserva_vehiculo
  *     responses:
  *       200:
- *         description: Successfully updated the reserva_vehiculo
+ *         description: Reserva de vehículo actualizada exitosamente
  *         content:
  *           application/json:
  *             schema:
@@ -4204,13 +4337,10 @@ app.post('/traveler/reservas_vehiculos', authenticateToken,(req, res) => {
  *               properties:
  *                 success:
  *                   type: boolean
- *                   description: Indicates that the reservation was successfully updated.
- *       404:
- *         description: Reserva_vehiculo not found
  *       500:
- *         description: Error updating reserva_vehiculo
+ *         description: Error al actualizar la reserva de vehículo
  */
-app.put('/traveler/reservas_vehiculos/:id', authenticateToken,(req, res) => {
+app.put('/traveler/reservas_vehiculos/:id', authenticateToken, (req, res) => {
     const id = req.params.id;
     const { id_usuario, fecha_reserva_vehiculo } = req.body;
     db.query('UPDATE traveler.reservas_vehiculos SET id_usuario = ?, fecha_reserva_vehiculo = ? WHERE id_reserva_vehiculo = ?', [id_usuario, fecha_reserva_vehiculo, id], (err, result) => {
@@ -4227,19 +4357,18 @@ app.put('/traveler/reservas_vehiculos/:id', authenticateToken,(req, res) => {
  * @swagger
  * /traveler/reservas_vehiculos/{id}:
  *   delete:
- *     summary: Delete a reservas_vehiculos (vehicle reservation) by ID
- *     description: Deletes the specified vehicle reservation by its ID.
- *     tags: [Reservas Vehiculos]
+ *     summary: Eliminar una reserva de vehículo por ID
+ *     tags: [Reservas Vehículos]
  *     parameters:
  *       - in: path
  *         name: id
  *         required: true
- *         description: The ID of the vehicle reservation to delete.
  *         schema:
  *           type: integer
+ *         description: ID de la reserva de vehículo
  *     responses:
  *       200:
- *         description: Successfully deleted the reserva_vehiculo
+ *         description: Reserva de vehículo eliminada exitosamente
  *         content:
  *           application/json:
  *             schema:
@@ -4247,13 +4376,10 @@ app.put('/traveler/reservas_vehiculos/:id', authenticateToken,(req, res) => {
  *               properties:
  *                 success:
  *                   type: boolean
- *                   description: Indicates that the reservation was successfully deleted.
- *       404:
- *         description: Reserva_vehiculo not found
  *       500:
- *         description: Error deleting reserva_vehiculo
+ *         description: Error al eliminar la reserva de vehículo
  */
-app.delete('/traveler/reservas_vehiculos/:id', authenticateToken,(req, res) => {
+app.delete('/traveler/reservas_vehiculos/:id', authenticateToken, (req, res) => {
     const id = req.params.id;
     db.query('DELETE FROM traveler.reservas_vehiculos WHERE id_reserva_vehiculo = ?', [id], (err, result) => {
         if (err) {
@@ -4268,18 +4394,19 @@ app.delete('/traveler/reservas_vehiculos/:id', authenticateToken,(req, res) => {
 
 
 
-// Reservas Vuelos
 
+
+
+// Reservas Vuelos
 /**
  * @swagger
  * /traveler/reservas_vuelos:
  *   get:
- *     summary: Get all reservas_vuelos (flight reservations)
- *     description: Retrieves a list of all flight reservations.
+ *     summary: Obtener todas las reservas de vuelos
  *     tags: [Reservas Vuelos]
  *     responses:
  *       200:
- *         description: A list of flight reservations
+ *         description: Lista de reservas de vuelos
  *         content:
  *           application/json:
  *             schema:
@@ -4292,21 +4419,16 @@ app.delete('/traveler/reservas_vehiculos/:id', authenticateToken,(req, res) => {
  *                     properties:
  *                       id_reserva_vuelo:
  *                         type: integer
- *                         description: The ID of the flight reservation.
- *                       id_vuelo:
- *                         type: integer
- *                         description: The ID of the flight.
  *                       id_usuario:
  *                         type: integer
- *                         description: The ID of the user making the reservation.
+ *                       id_vuelo:
+ *                         type: integer
  *                       fecha_reserva_vuelo:
  *                         type: string
- *                         format: date-time
- *                         description: The date and time of the flight reservation.
  *       500:
- *         description: Error fetching reservas_vuelos
+ *         description: Error al obtener las reservas de vuelos
  */
-app.get('/traveler/reservas_vuelos', authenticateToken,(req, res) => {
+app.get('/traveler/reservas_vuelos', authenticateToken, (req, res) => {
     db.query('SELECT * FROM traveler.reservas_vuelos', (err, results) => {
         if (err) {
             console.error('Error fetching reservas_vuelos:', err);
@@ -4321,19 +4443,18 @@ app.get('/traveler/reservas_vuelos', authenticateToken,(req, res) => {
  * @swagger
  * /traveler/reservas_vuelos/{id}:
  *   get:
- *     summary: Get a reserva_vuelo (flight reservation) by ID
- *     description: Retrieves a specific flight reservation based on its ID.
+ *     summary: Obtener una reserva de vuelo por ID
  *     tags: [Reservas Vuelos]
  *     parameters:
  *       - in: path
  *         name: id
  *         required: true
- *         description: The ID of the flight reservation.
  *         schema:
  *           type: integer
+ *         description: ID de la reserva de vuelo
  *     responses:
  *       200:
- *         description: A specific flight reservation
+ *         description: Información de la reserva de vuelo
  *         content:
  *           application/json:
  *             schema:
@@ -4344,23 +4465,18 @@ app.get('/traveler/reservas_vuelos', authenticateToken,(req, res) => {
  *                   properties:
  *                     id_reserva_vuelo:
  *                       type: integer
- *                       description: The ID of the flight reservation.
- *                     id_vuelo:
- *                       type: integer
- *                       description: The ID of the flight.
  *                     id_usuario:
  *                       type: integer
- *                       description: The ID of the user making the reservation.
+ *                     id_vuelo:
+ *                       type: integer
  *                     fecha_reserva_vuelo:
  *                       type: string
- *                       format: date-time
- *                       description: The date and time of the flight reservation.
  *       404:
- *         description: Reserva_vuelo not found
+ *         description: Reserva de vuelo no encontrada
  *       500:
- *         description: Error fetching reserva_vuelo
+ *         description: Error al obtener la reserva de vuelo
  */
-app.get('/traveler/reservas_vuelos/:id', authenticateToken,(req, res) => {
+app.get('/traveler/reservas_vuelos/:id', authenticateToken, (req, res) => {
     const id = req.params.id;
 
     db.query('SELECT * FROM traveler.reservas_vuelos WHERE id_reserva_vuelo = ?', [id], (err, results) => {
@@ -4381,8 +4497,7 @@ app.get('/traveler/reservas_vuelos/:id', authenticateToken,(req, res) => {
  * @swagger
  * /traveler/reservas_vuelos:
  *   post:
- *     summary: Create a new reserva_vuelo (flight reservation)
- *     description: Creates a new flight reservation with the provided details.
+ *     summary: Crear una nueva reserva de vuelo
  *     tags: [Reservas Vuelos]
  *     requestBody:
  *       required: true
@@ -4390,24 +4505,16 @@ app.get('/traveler/reservas_vuelos/:id', authenticateToken,(req, res) => {
  *         application/json:
  *           schema:
  *             type: object
- *             required:
- *               - id_usuario
- *               - id_vuelo
- *               - fecha_reserva_vuelo
  *             properties:
  *               id_usuario:
  *                 type: integer
- *                 description: The ID of the user making the reservation.
  *               id_vuelo:
  *                 type: integer
- *                 description: The ID of the flight being reserved.
  *               fecha_reserva_vuelo:
  *                 type: string
- *                 format: date-time
- *                 description: The date and time of the flight reservation.
  *     responses:
  *       200:
- *         description: The created flight reservation ID
+ *         description: Reserva de vuelo creada exitosamente
  *         content:
  *           application/json:
  *             schema:
@@ -4415,11 +4522,10 @@ app.get('/traveler/reservas_vuelos/:id', authenticateToken,(req, res) => {
  *               properties:
  *                 id:
  *                   type: integer
- *                   description: The ID of the newly created flight reservation.
  *       500:
- *         description: Error creating reserva_vuelo
+ *         description: Error al crear la reserva de vuelo
  */
-app.post('/traveler/reservas_vuelos', authenticateToken,(req, res) => {
+app.post('/traveler/reservas_vuelos', authenticateToken, (req, res) => {
     const { id_usuario, id_vuelo, fecha_reserva_vuelo } = req.body;
     db.query('INSERT INTO traveler.reservas_vuelos (id_usuario, id_vuelo, fecha_reserva_vuelo) VALUES (?, ?, ?)', [id_usuario, id_vuelo, fecha_reserva_vuelo], (err, result) => {
         if (err) {
@@ -4435,44 +4541,42 @@ app.post('/traveler/reservas_vuelos', authenticateToken,(req, res) => {
  * @swagger
  * /traveler/reservas_vuelos/{id}:
  *   put:
- *     summary: Update a reserva_vuelo (flight reservation) by ID
- *     description: Updates the details of a flight reservation by its ID.
+ *     summary: Actualizar una reserva de vuelo por ID
  *     tags: [Reservas Vuelos]
  *     parameters:
  *       - in: path
  *         name: id
  *         required: true
- *         description: The ID of the flight reservation to update.
  *         schema:
  *           type: integer
+ *         description: ID de la reserva de vuelo
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
- *             required:
- *               - id_usuario
- *               - id_vuelo
- *               - fecha_reserva_vuelo
  *             properties:
  *               id_usuario:
  *                 type: integer
- *                 description: The ID of the user making the reservation.
  *               id_vuelo:
  *                 type: integer
- *                 description: The ID of the flight being reserved.
  *               fecha_reserva_vuelo:
  *                 type: string
- *                 format: date-time
- *                 description: The date and time of the flight reservation.
  *     responses:
  *       200:
- *         description: Successful update of reserva_vuelo
+ *         description: Reserva de vuelo actualizada exitosamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
  *       500:
- *         description: Error updating reserva_vuelo
+ *         description: Error al actualizar la reserva de vuelo
  */
-app.put('/traveler/reservas_vuelos/:id', authenticateToken,(req, res) => {
+app.put('/traveler/reservas_vuelos/:id', authenticateToken, (req, res) => {
     const id = req.params.id;
     const { id_usuario, id_vuelo, fecha_reserva_vuelo } = req.body;
     db.query('UPDATE traveler.reservas_vuelos SET id_usuario = ?, id_vuelo = ?, fecha_reserva_vuelo = ? WHERE id_reserva_vuelo = ?', [id_usuario, id_vuelo, fecha_reserva_vuelo, id], (err, result) => {
@@ -4489,23 +4593,29 @@ app.put('/traveler/reservas_vuelos/:id', authenticateToken,(req, res) => {
  * @swagger
  * /traveler/reservas_vuelos/{id}:
  *   delete:
- *     summary: Delete a reserva_vuelo (flight reservation) by ID
- *     description: Deletes the flight reservation identified by the given ID.
+ *     summary: Eliminar una reserva de vuelo por ID
  *     tags: [Reservas Vuelos]
  *     parameters:
  *       - in: path
  *         name: id
  *         required: true
- *         description: The ID of the flight reservation to delete.
  *         schema:
  *           type: integer
+ *         description: ID de la reserva de vuelo
  *     responses:
  *       200:
- *         description: Successful deletion of reserva_vuelo
+ *         description: Reserva de vuelo eliminada exitosamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
  *       500:
- *         description: Error deleting reserva_vuelo
+ *         description: Error al eliminar la reserva de vuelo
  */
-app.delete('/traveler/reservas_vuelos/:id', authenticateToken,(req, res) => {
+app.delete('/traveler/reservas_vuelos/:id', authenticateToken, (req, res) => {
     const id = req.params.id;
     db.query('DELETE FROM traveler.reservas_vuelos WHERE id_reserva_vuelo = ?', [id], (err, result) => {
         if (err) {
@@ -4519,17 +4629,22 @@ app.delete('/traveler/reservas_vuelos/:id', authenticateToken,(req, res) => {
 
 
 
-// Reservas contacto.contacto
+
+
+
+
+// contacto.contacto
 /**
  * @swagger
  * /contacto/contacto:
  *   get:
- *     summary: Get all contacto entries
- *     description: Retrieves all the contacto entries from the database.
+ *     summary: Obtener todos los registros de contacto
  *     tags: [Contacto]
+ *     security:
+ *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: List of contacto entries.
+ *         description: Lista de contactos
  *         content:
  *           application/json:
  *             schema:
@@ -4539,23 +4654,8 @@ app.delete('/traveler/reservas_vuelos/:id', authenticateToken,(req, res) => {
  *                   type: array
  *                   items:
  *                     type: object
- *                     properties:
- *                       id_contacto:
- *                         type: integer
- *                         description: The ID of the contacto entry.
- *                       nombre:
- *                         type: string
- *                         description: The name of the contact.
- *                       email:
- *                         type: string
- *                         description: The email of the contact.
- *                       mensaje:
- *                         type: string
- *                         description: The message from the contact.
- *       500:
- *         description: Error fetching contacto
  */
-app.get('/contacto/contacto', authenticateToken,(req, res) => {
+app.get('/contacto/contacto', authenticateToken, (req, res) => {
     db.query('SELECT * FROM contacto.contacto', (err, results) => {
         if (err) {
             console.error('Error fetching contacto:', err);
@@ -4566,24 +4666,24 @@ app.get('/contacto/contacto', authenticateToken,(req, res) => {
     });
 });
 
-//get contacto by id
 /**
  * @swagger
  * /contacto/contacto/{id}:
  *   get:
- *     summary: Get a contacto entry by ID
- *     description: Retrieves a specific contacto entry by its ID.
+ *     summary: Obtener un contacto por ID
  *     tags: [Contacto]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
  *         required: true
- *         description: The ID of the contacto entry.
  *         schema:
  *           type: integer
+ *         description: ID del contacto
  *     responses:
  *       200:
- *         description: The requested contacto entry
+ *         description: Contacto encontrado
  *         content:
  *           application/json:
  *             schema:
@@ -4591,25 +4691,10 @@ app.get('/contacto/contacto', authenticateToken,(req, res) => {
  *               properties:
  *                 contacto:
  *                   type: object
- *                   properties:
- *                     id_contacto:
- *                       type: integer
- *                       description: The ID of the contacto entry.
- *                     nombre:
- *                       type: string
- *                       description: The name of the contact.
- *                     email:
- *                       type: string
- *                       description: The email of the contact.
- *                     mensaje:
- *                       type: string
- *                       description: The message from the contact.
  *       404:
- *         description: Contacto entry not found
- *       500:
- *         description: Error fetching contacto
+ *         description: Contacto no encontrado
  */
-app.get('/contacto/contacto/:id', authenticateToken,(req, res) => {
+app.get('/contacto/contacto/:id', authenticateToken, (req, res) => {
     const id = req.params.id;
 
     db.query('SELECT * FROM contacto.contacto WHERE id_contacto = ?', [id], (err, results) => {
@@ -4626,13 +4711,11 @@ app.get('/contacto/contacto/:id', authenticateToken,(req, res) => {
     });
 });
 
-//create contacto
 /**
  * @swagger
  * /contacto/contacto:
  *   post:
- *     summary: Create a new contacto entry
- *     description: Creates a new contacto entry with the provided details.
+ *     summary: Crear un nuevo contacto
  *     tags: [Contacto]
  *     requestBody:
  *       required: true
@@ -4643,36 +4726,26 @@ app.get('/contacto/contacto/:id', authenticateToken,(req, res) => {
  *             required:
  *               - nombre
  *               - apellido1
- *               - apellido2
  *               - correo
- *               - telefono
- *               - asunto
  *               - mensaje
  *             properties:
  *               nombre:
  *                 type: string
- *                 description: The name of the contact.
  *               apellido1:
  *                 type: string
- *                 description: The first surname of the contact.
  *               apellido2:
  *                 type: string
- *                 description: The second surname of the contact.
  *               correo:
  *                 type: string
- *                 description: The email of the contact.
  *               telefono:
  *                 type: string
- *                 description: The phone number of the contact.
  *               asunto:
  *                 type: string
- *                 description: The subject of the contact.
  *               mensaje:
  *                 type: string
- *                 description: The message from the contact.
  *     responses:
  *       200:
- *         description: Contacto entry successfully created
+ *         description: Contacto creado exitosamente
  *         content:
  *           application/json:
  *             schema:
@@ -4680,9 +4753,8 @@ app.get('/contacto/contacto/:id', authenticateToken,(req, res) => {
  *               properties:
  *                 id:
  *                   type: integer
- *                   description: The ID of the newly created contacto entry.
  *       500:
- *         description: Error creating contacto
+ *         description: Error al crear el contacto
  */
 app.post('/contacto/contacto', /*authenticateToken,*/(req, res) => {
     const { nombre, apellido1, apellido2, correo, telefono, asunto, mensaje } = req.body;
@@ -4696,44 +4768,45 @@ app.post('/contacto/contacto', /*authenticateToken,*/(req, res) => {
     });
 });
 
-//update contacto
 /**
  * @swagger
  * /contacto/contacto/{id}:
  *   put:
- *     summary: Update a contacto entry by ID
- *     description: Updates a specific contacto entry by its ID.
+ *     summary: Actualizar un contacto por ID
  *     tags: [Contacto]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
  *         required: true
- *         description: The ID of the contacto entry to update.
  *         schema:
  *           type: integer
+ *         description: ID del contacto
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
- *             required:
- *               - nombre
- *               - email
- *               - mensaje
  *             properties:
  *               nombre:
  *                 type: string
- *                 description: The name of the contact.
- *               email:
+ *               apellido1:
  *                 type: string
- *                 description: The email of the contact.
+ *               apellido2:
+ *                 type: string
+ *               correo:
+ *                 type: string
+ *               telefono:
+ *                 type: string
+ *               asunto:
+ *                 type: string
  *               mensaje:
  *                 type: string
- *                 description: The message from the contact.
  *     responses:
  *       200:
- *         description: Contacto entry successfully updated
+ *         description: Contacto actualizado exitosamente
  *         content:
  *           application/json:
  *             schema:
@@ -4741,13 +4814,10 @@ app.post('/contacto/contacto', /*authenticateToken,*/(req, res) => {
  *               properties:
  *                 success:
  *                   type: boolean
- *                   description: Indicates whether the update was successful.
  *       500:
- *         description: Error updating contacto entry
- *       404:
- *         description: Contacto entry not found
+ *         description: Error al actualizar el contacto
  */
-app.put('/contacto/contacto/:id', authenticateToken,(req, res) => {
+app.put('/contacto/contacto/:id', authenticateToken, (req, res) => {
     const id = req.params.id;
     const { nombre, apellido1, apellido2, correo, telefono, asunto, mensaje } = req.body;
 
@@ -4765,29 +4835,35 @@ app.put('/contacto/contacto/:id', authenticateToken,(req, res) => {
     );
 });
 
-
-//set resuelto
 /**
  * @swagger
  * /contacto/contacto/resuelto/{id}:
  *   put:
- *     summary: Set contacto entry as resolved by ID
- *     description: Marks a specific contacto entry as resolved by its ID.
+ *     summary: Marcar un contacto como resuelto
  *     tags: [Contacto]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
  *         required: true
- *         description: The ID of the contacto entry to mark as resolved.
  *         schema:
  *           type: integer
+ *         description: ID del contacto
  *     responses:
  *       200:
- *         description: Contacto entry successfully marked as resolved
+ *         description: Contacto marcado como resuelto
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
  *       500:
- *         description: Error marking contacto entry as resolved
+ *         description: Error al marcar como resuelto
  */
-app.put('/contacto/contacto/resuelto/:id', authenticateToken,(req, res) => {
+app.put('/contacto/contacto/resuelto/:id', authenticateToken, (req, res) => {
     const id = req.params.id;
     db.query('UPDATE contacto.contacto SET resuelto = 1 WHERE `id_contacto` = ?', [id], (err, result) => {
         if (err) {
@@ -4799,29 +4875,35 @@ app.put('/contacto/contacto/resuelto/:id', authenticateToken,(req, res) => {
     });
 });
 
-
-//delete contacto
 /**
  * @swagger
  * /contacto/contacto/{id}:
  *   delete:
- *     summary: Delete a contacto entry by ID
- *     description: Deletes a specific contacto entry by its ID.
+ *     summary: Eliminar un contacto por ID
  *     tags: [Contacto]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
  *         required: true
- *         description: The ID of the contacto entry to delete.
  *         schema:
  *           type: integer
+ *         description: ID del contacto
  *     responses:
  *       200:
- *         description: Contacto entry successfully deleted
+ *         description: Contacto eliminado exitosamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
  *       500:
- *         description: Error deleting contacto entry
+ *         description: Error al eliminar el contacto
  */
-app.delete('/contacto/contacto/:id', authenticateToken,(req, res) => {
+app.delete('/contacto/contacto/:id', authenticateToken, (req, res) => {
     const id = req.params.id;
     db.query('DELETE FROM contacto.contacto WHERE id_contacto = ?', [id], (err, result) => {
         if (err) {
@@ -4833,68 +4915,44 @@ app.delete('/contacto/contacto/:id', authenticateToken,(req, res) => {
     });
 });
 
-/*Chat*/
-app.get('/traveler/chat', authenticateToken,(req, res) => {
-    db.query('SELECT * FROM traveler.chat', (err, results) => {
-        if (err) {
-            console.error('Error fetching chat:', err);
-            res.status(500).json({ error: 'Error fetching chat' });
-        } else {
-            res.json({ chat: results });
-        }
-    });
-});
 
-app.get('/traveler/chat/:id', authenticateToken,(req, res) => {
-    db.query('SELECT * FROM traveler.chat WHERE id_chat = ?', [req.params.id], (err, results) => {
-        if (err) {
-            console.error('Error fetching chat:', err);
-            res.status(500).json({ error: 'Error fetching chat' });
-        } else {
-            if (results.length === 0) {
-                res.status(404).json({ error: 'Chat not found' });
-            } else {
-                res.json({ chat: results[0] });
-            }
-        }
-    }
-    );
-}
-);
-
-app.post('/traveler/chat', authenticateToken,(req, res) => {
-    const { id_usuario1, id_usuario2, mensaje } = req.body;
-    db.query('INSERT INTO traveler.chat (id_usuario1, id_usuario2, mensaje) VALUES (?, ?, ?)', [id_usuario1, id_usuario2, mensaje], (err, result) => {
-        if (err) {
-            console.error('Error creating chat:', err);
-            res.status(500).json({ error: 'Error creating chat' });
-        } else {
-            res.json({ id: result.insertId });
-        }
-    });
-}
-);
-
-app.delete('/traveler/chat/:id', authenticateToken,(req, res) => {
-    db.query('DELETE FROM traveler.chat WHERE id_chat = ?', [req.params.id], (err, result) => {
-        if (err) {
-            console.error('Error deleting chat:', err);
-            res.status(500).json({ error: 'Error deleting chat' });
-        } else {
-            res.json({ success: true });
-        }
-    });
-}
-);
 
 
 
 
 
 //imagenes_usuarios
-
-
-app.get('/traveler/imagenes_usuarios/:id', authenticateToken,(req, res) => {
+/**
+ * @swagger
+ * /traveler/imagenes_usuarios/{id}:
+ *   get:
+ *     summary: Obtener la imagen de un usuario por ID
+ *     tags: [Imágenes Usuarios]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID del usuario
+ *     responses:
+ *       200:
+ *         description: Imagen del usuario obtenida exitosamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 imagen:
+ *                   type: object
+ *       404:
+ *         description: Imagen no encontrada
+ *       500:
+ *         description: Error al obtener la imagen del usuario
+ */
+app.get('/traveler/imagenes_usuarios/:id', authenticateToken, (req, res) => {
     db.query('SELECT * FROM traveler.imagenes_usuarios WHERE id_usuario = ?', [req.params.id], (err, results) => {
         if (err) {
             console.error('Error fetching imagenes_usuarios:', err);
