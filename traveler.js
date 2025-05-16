@@ -3670,6 +3670,19 @@ app.delete('/traveler/post_blog/:id', authenticateToken, (req, res) => {
 
 
 // Reservas Alojamientos
+app.post('/traveler/reservas_alojamientos', authenticateToken, (req, res) => {
+    const { id_alojamiento, fecha_reserva_alojamiento, id_usuario, nombre, apellidos, email, telefono, fecha_entrada_alojamiento, fecha_salida_alojamiento,hora_entrada_alojamiento,
+  hora_salida_alojamiento, } = req.body;
+    db.query('INSERT INTO traveler.reservas_alojamientos (id_alojamiento, fecha_reserva_alojamiento, id_usuario, nombre, apellidos, email, telefono, fecha_entrada_alojamiento, fecha_salida_alojamiento, hora_entrada_alojamiento, hora_salida_alojamiento) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [id_alojamiento, fecha_reserva_alojamiento, id_usuario, nombre, apellidos, email, telefono, fecha_entrada_alojamiento, fecha_salida_alojamiento, hora_entrada_alojamiento, hora_salida_alojamiento], (err, result) => {
+        if (err) {
+            console.error('Error creating reserva:', err);
+            res.status(500).json({ error: 'Error creating reserva' });
+        } else {
+            res.json({ id: result.insertId });
+        }
+    });
+});
+
 /**
  * @swagger
  * /traveler/reservas_actividades:
@@ -3798,8 +3811,8 @@ app.get('/traveler/reservas_actividades/:id', authenticateToken, (req, res) => {
  *         description: Error al crear la reserva de actividad
  */
 app.post('/traveler/reservas_actividades', authenticateToken, (req, res) => {
-    const { id_actividad, fecha_reserva_actividad, id_usuario } = req.body;
-    db.query('INSERT INTO traveler.reservas_actividades (id_actividad, fecha_reserva_actividad, id_usuario) VALUES (?, ?, ?)', [id_actividad, fecha_reserva_actividad, id_usuario], (err, result) => {
+    const { id_actividad, fecha_reserva_actividad, id_usuario, fecha_actividad, hora_actividad, nombre, apellidos, email, telefono } = req.body;
+    db.query('INSERT INTO traveler.reservas_actividades (id_actividad, fecha_reserva_actividad, id_usuario, fecha_actividad, hora_actividad, nombre, apellidos, email, telefono) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', [id_actividad, fecha_reserva_actividad, id_usuario, fecha_actividad, hora_actividad, nombre, apellidos, email, telefono], (err, result) => {
         if (err) {
             console.error('Error creating reserva_actividad:', err);
             res.status(500).json({ error: 'Error creating reserva_actividad' });
@@ -3906,42 +3919,6 @@ app.delete('/traveler/reservas_actividades/:id', authenticateToken, (req, res) =
 
 
 // Reservas Alojamientos
-/**
- * @swagger
- * /traveler/reservas_alojamientos:
- *   get:
- *     summary: Obtener todas las reservas de alojamientos
- *     tags: [Reservas Alojamientos]
- *     responses:
- *       200:
- *         description: Lista de reservas de alojamientos
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 reservas_alojamientos:
- *                   type: array
- *                   items:
- *                     type: object
- *                     properties:
- *                       id_reserva_alojamiento:
- *                         type: integer
- *                       id_alojamiento:
- *                         type: integer
- *                       id_usuario:
- *                         type: integer
- *                       fecha_reserva_inicio_alojamiento:
- *                         type: string
- *                       fecha_reserva_final_alojamiento:
- *                         type: string
- *                       hora_entrada_alojamiento:
- *                         type: string
- *                       hora_salida_alojamiento:
- *                         type: string
- *       500:
- *         description: Error al obtener las reservas de alojamientos
- */
 app.get('/traveler/reservas_alojamientos', authenticateToken, (req, res) => {
     db.query('SELECT * FROM traveler.reservas_alojamientos', (err, results) => {
         if (err) {
@@ -4055,7 +4032,7 @@ app.get('/traveler/reservas_alojamientos/:id', authenticateToken, (req, res) => 
  */
 app.post('/traveler/reservas_alojamientos', authenticateToken, (req, res) => {
     const { id_alojamiento, id_usuario, fecha_reserva_alojamiento, fecha_entrada_alojamiento, fecha_salida_alojamiento, hora_entrada_alojamiento, hora_salida_alojamiento } = req.body;
-    db.query('INSERT INTO traveler.reservas_alojamientos (id_alojamiento, id_usuario, fecha_reserva_inicio_alojamiento, fecha_reserva_final_alojamiento) VALUES (?, ?, ?, ?)', [id_alojamiento, id_usuario, fecha_reserva_alojamiento, fecha_entrada_alojamiento, fecha_salida_alojamiento, hora_entrada_alojamiento, hora_salida_alojamiento], (err, result) => {
+    db.query('INSERT INTO traveler.reservas_alojamientos (id_alojamiento, id_usuario, fecha_entrada_alojamiento, fecha_salida_alojamiento) VALUES (?, ?, ?, ?)', [id_alojamiento, id_usuario, fecha_reserva_alojamiento, fecha_entrada_alojamiento, fecha_salida_alojamiento, hora_entrada_alojamiento, hora_salida_alojamiento], (err, result) => {
         if (err) {
             console.error('Error creating reserva_alojamiento:', err);
             res.status(500).json({ error: 'Error creating reserva_alojamiento' });
@@ -4115,7 +4092,7 @@ app.post('/traveler/reservas_alojamientos', authenticateToken, (req, res) => {
 app.put('/traveler/reservas_alojamientos/:id', authenticateToken, (req, res) => {
     const id = req.params.id;
     const { id_alojamiento, id_usuario, fecha_reserva_alojamiento, fecha_entrada_alojamiento, fecha_salida_alojamiento, hora_entrada_alojamiento, hora_salida_alojamiento } = req.body;
-    db.query('UPDATE traveler.reservas_alojamientos SET id_alojamiento = ?, id_usuario = ?, fecha_reserva_inicio_alojamiento = ?, fecha_reserva_final_alojamiento = ? WHERE id_reserva_alojamiento = ?', [id_alojamiento, id_usuario, fecha_reserva_alojamiento, fecha_entrada_alojamiento, fecha_salida_alojamiento, hora_entrada_alojamiento, hora_salida_alojamiento, id], (err, result) => {
+    db.query('UPDATE traveler.reservas_alojamientos SET id_alojamiento = ?, id_usuario = ?, fecha_entrada_alojamiento = ?, fecha_salida_alojamiento = ? WHERE id_reserva_alojamiento = ?', [id_alojamiento, id_usuario, fecha_reserva_alojamiento, fecha_entrada_alojamiento, fecha_salida_alojamiento, hora_entrada_alojamiento, hora_salida_alojamiento, id], (err, result) => {
         if (err) {
             console.error('Error updating reserva_alojamiento:', err);
             res.status(500).json({ error: 'Error updating reserva_alojamiento' });
