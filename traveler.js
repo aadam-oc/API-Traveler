@@ -4948,7 +4948,80 @@ app.get('/traveler/imagenes_usuarios/:id', authenticateToken, (req, res) => {
 
 
 
+// Obtener reservas de alojamientos por usuario
+app.get('/traveler/reservas_alojamientos/usuario/:id_usuario', authenticateToken, (req, res) => {
+    const { id_usuario } = req.params;
+    const query = `
+        SELECT 
+            ra.*, 
+            a.nombre_alojamiento, 
+            a.direccion, 
+            a.hora_entrada, 
+            a.hora_salida
+        FROM traveler.reservas_alojamientos ra
+        JOIN traveler.alojamientos a ON ra.id_alojamiento = a.id_alojamiento
+        WHERE ra.id_usuario = ?
+    `;
+    db.query(query, [id_usuario], (err, results) => {
+        if (err) {
+            console.error('Error fetching reservas_alojamientos:', err);
+            res.status(500).json({ error: 'Error al obtener reservas de alojamiento' });
+        } else {
+            res.json(results);
+        }
+    });
+});
 
+// Obtener reservas de actividades por usuario
+app.get('/traveler/reservas_actividades/usuario/:id_usuario', authenticateToken, (req, res) => {
+    const { id_usuario } = req.params;
+    db.query(
+        'SELECT * FROM traveler.reservas_actividades WHERE id_usuario = ?',
+        [id_usuario],
+        (err, results) => {
+            if (err) {
+                console.error('Error fetching reservas_actividades:', err);
+                res.status(500).json({ error: 'Error al obtener reservas de actividades' });
+            } else {
+                res.json(results); 
+            }
+        }
+    );
+});
+
+// Obtener reservas de vehículos por usuario
+app.get('/traveler/reservas_vehiculos/usuario/:id_usuario', authenticateToken, (req, res) => {
+    const { id_usuario } = req.params;
+    db.query(
+        'SELECT * FROM traveler.reservas_vehiculos WHERE id_usuario = ?',
+        [id_usuario],
+        (err, results) => {
+            if (err) {
+                console.error('Error fetching reservas_vehiculos:', err);
+                res.status(500).json({ error: 'Error al obtener reservas de vehículos' });
+            } else {
+                res.json(results); 
+            }
+        }
+    );
+});
+
+// Obtener reservas de vuelos por usuario
+app.get('/traveler/reservas_vuelos/usuario/:id_usuario', authenticateToken, (req, res) => {
+    const { id_usuario } = req.params;
+    db.query(
+        'SELECT * FROM traveler.reservas_vuelos WHERE id_usuario = ?',
+        [id_usuario],
+        (err, results) => {
+            if (err) {
+                console.error('Error fetching reservas_vuelos:', err);
+                res.status(500).json({ error: 'Error al obtener reservas de vuelos' });
+            } else {
+                res.json(results); 
+            }
+        }
+    );
+});
 
 
 
