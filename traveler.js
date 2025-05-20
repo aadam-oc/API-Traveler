@@ -1294,7 +1294,7 @@ app.get('/traveler/caracteristicas_usuarios/:id', authenticateToken, (req, res) 
             if (results.length === 0) {
                 res.status(404).json({ error: 'Caracteristica_usuario not found' });
             } else {
-                res.json({ caracteristica_usuario: results[0] });
+                res.json({ caracteristicas: results[0] });
             }
         }
     });
@@ -1348,21 +1348,49 @@ app.post('/traveler/caracteristicas_usuarios', authenticateToken, (req, res) => 
     const { id_usuario, nombre, apellido1, apellido2, telefono1, telefono2 } = req.body;
 
     db.query(
-        'INSERT INTO traveler.caracteristicas_usuarios (id_usuario, nombre, apellido1, apellido2, telefono1, telefono2) VALUES (?, ?, ?, ?, ?, ?)',
-        [
-            id_usuario || null,
-            nombre || null,
-            apellido1 || null,
-            apellido2 || null,
-            telefono1 || null,
-            telefono2 || null
-        ],
-        (err, result) => {
+        'SELECT * FROM traveler.caracteristicas_usuarios WHERE id_usuario = ?',
+        [id_usuario],
+        (err, results) => {
             if (err) {
-                console.error('Error creating caracteristica_usuario:', err);
-                res.status(500).json({ error: 'Error creating caracteristica_usuario' });
+                console.error('Error checking caracteristica_usuario:', err);
+                return res.status(500).json({ error: 'Error checking caracteristica_usuario' });
+            }
+
+            if (results.length === 0) {
+                // No existe, hacer INSERT
+                db.query(
+                    'INSERT INTO traveler.caracteristicas_usuarios (id_usuario, nombre, apellido1, apellido2, telefono1, telefono2) VALUES (?, ?, ?, ?, ?, ?)',
+                    [
+                        id_usuario || null,
+                        nombre || null,
+                        apellido1 || null,
+                        apellido2 || null,
+                        telefono1 || null,
+                        telefono2 || null
+                    ],
+                    (err, result) => {
+                        if (err) {
+                            console.error('Error creating caracteristica_usuario:', err);
+                            res.status(500).json({ error: 'Error creating caracteristica_usuario' });
+                        } else {
+                            res.json({ id: result.insertId, action: 'inserted', message: 'Característica de usuario creada correctamente' });
+                        }
+                    }
+                );
             } else {
-                res.json({ id: result.insertId, message: 'Característica de usuario creada correctamente' });
+                // Ya existe, hacer UPDATE
+                db.query(
+                    'UPDATE traveler.caracteristicas_usuarios SET nombre = ?, apellido1 = ?, apellido2 = ?, telefono1 = ?, telefono2 = ? WHERE id_usuario = ?',
+                    [nombre, apellido1, apellido2, telefono1, telefono2, id_usuario],
+                    (err, result) => {
+                        if (err) {
+                            console.error('Error updating caracteristica_usuario:', err);
+                            res.status(500).json({ error: 'Error updating caracteristica_usuario' });
+                        } else {
+                            res.json({ id: id_usuario, action: 'updated', message: 'Característica de usuario actualizada correctamente' });
+                        }
+                    }
+                );
             }
         }
     );
@@ -4930,7 +4958,7 @@ app.delete('/contacto/contacto/:id', authenticateToken, (req, res) => {
  *         description: Error al obtener la imagen del usuario
  */
 app.get('/traveler/imagenes_usuarios/:id', authenticateToken, (req, res) => {
-    db.query('SELECT * FROM traveler.imagenes_usuarios WHERE id_usuario = ?', [req.params.id], (err, results) => {
+    db.query('SELECT nombre_imagen_usuario FROM traveler.imagenes_usuarios WHERE id_usuario = ?', [req.params.id], (err, results) => {
         if (err) {
             console.error('Error fetching imagenes_usuarios:', err);
             res.status(500).json({ error: 'Error fetching imagenes_usuarios' });
@@ -4938,8 +4966,62 @@ app.get('/traveler/imagenes_usuarios/:id', authenticateToken, (req, res) => {
             if (results.length === 0) {
                 res.status(404).json({ error: 'Imagen not found' });
             } else {
-                res.json({ imagen: results[0] });
+                res.json({ nombre_imagen_usuario: results[0].nombre_imagen_usuario });
             }
+        }
+    });
+});
+
+
+app.post('/traveler/imagenes_usuarios', authenticateToken, (req, res) => {
+    const { id_usuario, nombre_imagen_usuario } = req.body;
+
+    db.query('SELECT * FROM traveler.imagenes_usuarios WHERE id_usuario = ?', [id_usuario], (err, results) => {
+        if (err) {
+            console.error('Error checking imagen_usuarios:', err);
+            return res.status(500).json({ error: 'Error checking imagen_usuarios' });
+        }
+
+        if (results.length === 0) {
+            // No existe, hacer INSERT
+            db.query(
+                'INSERT INTO traveler.imagenes_usuarios (id_usuario, nombre_imagen_usuario) VALUES (?, ?)',
+                [id_usuario, nombre_imagen_usuario],
+                (err, result) => {
+                    if (err) {
+                        console.error('Error creating imagen_usuarios:', err);
+                        return res.status(500).json({ error: 'Error creating imagen_usuarios' });
+                    }
+                    res.json({ id: result.insertId, action: 'inserted' });
+                }
+            );
+        } else {
+            // Ya existe, hacer UPDATE
+            db.query(
+                'UPDATE traveler.imagenes_usuarios SET nombre_imagen_usuario = ? WHERE id_usuario = ?',
+                [nombre_imagen_usuario, id_usuario],
+                (err, result) => {
+                    if (err) {
+                        console.error('Error updating imagen_usuarios:', err);
+                        return res.status(500).json({ error: 'Error updating imagen_usuarios' });
+                    }
+                    res.json({ id: results[0].id_imagen_usuario, action: 'updated' });
+                }
+            );
+        }
+    });
+});
+
+
+app.put('/traveler/imagenes_usuarios/:id', authenticateToken, (req, res) => {
+    const id = req.params.id;
+    const { id_usuario, nombre_imagen_usuario } = req.body;
+    db.query('UPDATE traveler.imagenes_usuarios SET nombre_imagen_usuario = ? WHERE id_imagen_usuario = ?', [ nombre_imagen_usuario, id_usuario], (err, result) => {
+        if (err) {
+            console.error('Error updating imagen_usuarios:', err);
+            res.status(500).json({ error: 'Error updating imagen_usuarios' });
+        } else {
+            res.json({ result });
         }
     });
 }
