@@ -5057,18 +5057,29 @@ app.get('/traveler/reservas_alojamientos/usuario/:id_usuario', authenticateToken
 // Obtener reservas de actividades por usuario
 app.get('/traveler/reservas_actividades/usuario/:id_usuario', authenticateToken, (req, res) => {
     const { id_usuario } = req.params;
-    db.query(
-        'SELECT * FROM traveler.reservas_actividades WHERE id_usuario = ?',
-        [id_usuario],
-        (err, results) => {
-            if (err) {
-                console.error('Error fetching reservas_actividades:', err);
-                res.status(500).json({ error: 'Error al obtener reservas de actividades' });
-            } else {
-                res.json(results); 
-            }
+    const query = `
+        SELECT 
+            ra.*, 
+            a.id_actividad, 
+            a.id_destino, 
+            a.id_tipo_actividad, 
+            a.disponibilidad_actividad, 
+            a.precio, 
+            a.descripcion,
+            ta.nombre_tipo_actividad
+        FROM traveler.reservas_actividades ra
+        JOIN traveler.actividades a ON ra.id_actividad = a.id_actividad
+        JOIN traveler.tipo_actividad ta ON a.id_tipo_actividad = ta.id_tipo_actividad
+        WHERE ra.id_usuario = ?
+    `;
+    db.query(query, [id_usuario], (err, results) => {
+        if (err) {
+            console.error('Error fetching reservas_actividades:', err);
+            res.status(500).json({ error: 'Error al obtener reservas de actividades' });
+        } else {
+            res.json(results);
         }
-    );
+    });
 });
 
 // Obtener reservas de vehículos por usuario
@@ -5108,14 +5119,252 @@ app.get('/traveler/reservas_vuelos/usuario/:id_usuario', authenticateToken, (req
 
 
 
+// Crear una nueva reserva de vehículo
+/**
+ * @swagger
+ * /traveler/reservas_vehiculos:
+ *   post:
+ *     summary: Crear una nueva reserva de vehículo
+ *     tags: [Reservas Vehículos]
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - id_usuario
+ *               - fecha_reserva_vehiculo
+ *               - id_vehiculo
+ *             properties:
+ *               id_usuario:
+ *                 type: integer
+ *               fecha_reserva_vehiculo:
+ *                 type: string
+ *               id_vehiculo:
+ *                 type: integer
+ *     responses:
+ *       201:
+ *         description: Reserva de vehículo creada correctamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: integer
+ *       500:
+ *         description: Error al crear la reserva de vehículo
+ */
+app.post('/traveler/reservas_vehiculos', authenticateToken, (req, res) => {
+    const { id_usuario, fecha_reserva_vehiculo, id_vehiculo } = req.body;
+    db.query(
+        'INSERT INTO traveler.reservas_vehiculos (id_usuario, fecha_reserva_vehiculo, id_vehiculo) VALUES (?, ?, ?)',
+        [id_usuario, fecha_reserva_vehiculo, id_vehiculo],
+        (err, result) => {
+            if (err) {
+                console.error('Error creating reserva_vehiculo:', err);
+                res.status(500).json({ error: 'Error creating reserva_vehiculo' });
+            } else {
+                res.status(201).json({ id: result.insertId });
+            }
+        }
+    );
+});
 
+// Obtener todas las reservas de vehículos
+/**
+ * @swagger
+ * /traveler/reservas_vehiculos:
+ *   get:
+ *     summary: Obtener todas las reservas de vehículos
+ *     tags: [Reservas Vehículos]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Lista de reservas de vehículos obtenida correctamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 reservas_vehiculos:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id_reserva_vehiculo:
+ *                         type: integer
+ *                       id_usuario:
+ *                         type: integer
+ *                       fecha_reserva_vehiculo:
+ *                         type: string
+ *                       id_vehiculo:
+ *                         type: integer
+ *       500:
+ *         description: Error al obtener las reservas de vehículos
+ */
+app.get('/traveler/reservas_vehiculos', authenticateToken, (req, res) => {
+    db.query('SELECT * FROM traveler.reservas_vehiculos', (err, results) => {
+        if (err) {
+            console.error('Error fetching reservas_vehiculos:', err);
+            res.status(500).json({ error: 'Error fetching reservas_vehiculos' });
+        } else {
+            res.json({ reservas_vehiculos: results });
+        }
+    });
+});
 
+// Obtener una reserva de vehículo por ID
+/**
+ * @swagger
+ * /traveler/reservas_vehiculos/{id}:
+ *   get:
+ *     summary: Obtener una reserva de vehículo por ID
+ *     tags: [Reservas Vehículos]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID de la reserva de vehículo
+ *     responses:
+ *       200:
+ *         description: Reserva de vehículo obtenida correctamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 reserva_vehiculo:
+ *                   type: object
+ *                   properties:
+ *                     id_reserva_vehiculo:
+ *                       type: integer
+ *                     id_usuario:
+ *                       type: integer
+ *                     fecha_reserva_vehiculo:
+ *                       type: string
+ *                     id_vehiculo:
+ *                       type: integer
+ *       404:
+ *         description: Reserva de vehículo no encontrada
+ *       500:
+ *         description: Error al obtener la reserva de vehículo
+ */
+app.get('/traveler/reservas_vehiculos/:id', authenticateToken, (req, res) => {
+    const id = req.params.id;
+    db.query('SELECT * FROM traveler.reservas_vehiculos WHERE id_reserva_vehiculo = ?', [id], (err, results) => {
+        if (err) {
+            console.error('Error fetching reserva_vehiculo:', err);
+            res.status(500).json({ error: 'Error fetching reserva_vehiculo' });
+        } else if (results.length === 0) {
+            res.status(404).json({ error: 'Reserva de vehículo no encontrada' });
+        } else {
+            res.json({ reserva_vehiculo: results[0] });
+        }
+    });
+});
 
+// Actualizar una reserva de vehículo por ID
+/**
+ * @swagger
+ * /traveler/reservas_vehiculos/{id}:
+ *   put:
+ *     summary: Actualizar una reserva de vehículo por ID
+ *     tags: [Reservas Vehículos]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID de la reserva de vehículo
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               id_usuario:
+ *                 type: integer
+ *               fecha_reserva_vehiculo:
+ *                 type: string
+ *               id_vehiculo:
+ *                 type: integer
+ *     responses:
+ *       200:
+ *         description: Reserva de vehículo actualizada correctamente
+ *       404:
+ *         description: Reserva de vehículo no encontrada
+ *       500:
+ *         description: Error al actualizar la reserva de vehículo
+ */
+app.put('/traveler/reservas_vehiculos/:id', authenticateToken, (req, res) => {
+    const id = req.params.id;
+    const { id_usuario, fecha_reserva_vehiculo, id_vehiculo } = req.body;
+    db.query(
+        'UPDATE traveler.reservas_vehiculos SET id_usuario = ?, fecha_reserva_vehiculo = ?, id_vehiculo = ? WHERE id_reserva_vehiculo = ?',
+        [id_usuario, fecha_reserva_vehiculo, id_vehiculo, id],
+        (err, result) => {
+            if (err) {
+                console.error('Error updating reserva_vehiculo:', err);
+                res.status(500).json({ error: 'Error updating reserva_vehiculo' });
+            } else if (result.affectedRows === 0) {
+                res.status(404).json({ error: 'Reserva de vehículo no encontrada' });
+            } else {
+                res.json({ success: true });
+            }
+        }
+    );
+});
 
-
-
-
-
+// Eliminar una reserva de vehículo por ID
+/**
+ * @swagger
+ * /traveler/reservas_vehiculos/{id}:
+ *   delete:
+ *     summary: Eliminar una reserva de vehículo por ID
+ *     tags: [Reservas Vehículos]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID de la reserva de vehículo
+ *     responses:
+ *       200:
+ *         description: Reserva de vehículo eliminada correctamente
+ *       404:
+ *         description: Reserva de vehículo no encontrada
+ *       500:
+ *         description: Error al eliminar la reserva de vehículo
+ */
+app.delete('/traveler/reservas_vehiculos/:id', authenticateToken, (req, res) => {
+    const id = req.params.id;
+    db.query('DELETE FROM traveler.reservas_vehiculos WHERE id_reserva_vehiculo = ?', [id], (err, result) => {
+        if (err) {
+            console.error('Error deleting reserva_vehiculo:', err);
+            res.status(500).json({ error: 'Error deleting reserva_vehiculo' });
+        } else if (result.affectedRows === 0) {
+            res.status(404).json({ error: 'Reserva de vehículo no encontrada' });
+        } else {
+            res.json({ success: true });
+        }
+    });
+});
 
 
 
