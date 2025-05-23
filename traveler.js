@@ -245,7 +245,7 @@ app.post('/traveler/login', (req, res) => {
             const token = jwt.sign(
                 { id: user.id_usuario, correo: user.correo },
                 JWT_SECRET,
-                { expiresIn: '10h' }
+                { expiresIn: '40h' }
             );
 
             res.status(200).json({
@@ -342,7 +342,7 @@ app.post('/traveler/register', async (req, res) => {
                 const token = jwt.sign(
                     { id: result.insertId, correo },
                     JWT_SECRET,
-                    { expiresIn: '10h' }
+                    { expiresIn: '40h' }
                 );
 
                 res.status(201).json({
@@ -2225,15 +2225,26 @@ app.get('/traveler/actividades_completo/:id', (req, res) => {
  */
 app.put('/traveler/actividades_completo/:id', authenticateToken, (req, res) => {
     const id = req.params.id;
-    const { id_destino, id_tipo_actividad, disponibilidad_actividad, precio } = req.body;
-    db.query('UPDATE traveler.actividades SET id_destino = ?, id_tipo_actividad = ?, disponibilidad_actividad = ?, precio = ? WHERE id_actividad = ?', [id_destino, id_tipo_actividad, disponibilidad_actividad, precio, id], (err, result) => {
-        if (err) {
-            console.error('Error updating actividad:', err);
-            res.status(500).json({ error: 'Error updating actividad' });
-        } else {
-            res.json({ success: true });
+    const {
+        id_destino,
+        id_tipo_actividad,
+        disponibilidad_actividad,
+        precio,
+        descripcion,
+        id_usuario_actividad
+    } = req.body;
+    db.query(
+        'UPDATE traveler.actividades SET id_destino = ?, id_tipo_actividad = ?, disponibilidad_actividad = ?, precio = ?, descripcion = ?, id_usuario_actividad = ? WHERE id_actividad = ?',
+        [id_destino, id_tipo_actividad, disponibilidad_actividad, precio, descripcion, id_usuario_actividad, id],
+        (err, result) => {
+            if (err) {
+                console.error('Error updating actividad:', err);
+                res.status(500).json({ error: 'Error updating actividad' });
+            } else {
+                res.json({ success: true });
+            }
         }
-    });
+    );
 });
 
 /**
@@ -2276,10 +2287,10 @@ app.put('/traveler/actividades_completo/:id', authenticateToken, (req, res) => {
  *         description: Error interno al crear la actividad
  */
 app.post('/traveler/actividades', authenticateToken, (req, res) => {
-    const { id_destino, id_tipo_actividad, disponibilidad_actividad, precio, descripcion } = req.body;
+    const { id_destino, id_tipo_actividad, disponibilidad_actividad, precio, descripcion, id_usuario_actividad } = req.body;
     const disponibilidad = Boolean(disponibilidad_actividad);
 
-    db.query('INSERT INTO traveler.actividades ( id_destino, id_tipo_actividad, disponibilidad_actividad, precio, descripcion) VALUES ( ?, ?, ?, ?, ?)', [id_destino, id_tipo_actividad, disponibilidad, precio, descripcion], (err, result) => {
+    db.query('INSERT INTO traveler.actividades ( id_destino, id_tipo_actividad, disponibilidad_actividad, precio, descripcion, id_usuario_actividad) VALUES ( ?, ?, ?, ?, ?,?)', [id_destino, id_tipo_actividad, disponibilidad, precio, descripcion, id_usuario_actividad], (err, result) => {
         if (err) {
             console.error('Error creating actividad:', err);
             res.status(500).json({ error: 'Error creating actividad' });
@@ -2330,19 +2341,31 @@ app.post('/traveler/actividades', authenticateToken, (req, res) => {
  */
 app.put('/traveler/actividades/:id', authenticateToken, (req, res) => {
     const id_actividad = req.params.id;
-    const { id_destino, id_tipo_actividad, disponibilidad_actividad, precio } = req.body;
-    const disponibilidad = Boolean(disponibilidad_actividad);
+    const {
+        id_destino,
+        id_tipo_actividad,
+        disponibilidad_actividad,
+        precio,
+        descripcion,
+        id_usuario_actividad
+    } = req.body;
 
-    db.query('UPDATE traveler.actividades SET id_destino = ?, id_tipo_actividad = ?, disponibilidad_actividad = ?, precio = ? WHERE id_actividad = ?', [id_destino, id_tipo_actividad, disponibilidad, id_actividad, precio], (err, result) => {
-        if (err) {
-            console.error('Error updating actividad:', err);
-            res.status(500).json({ error: 'Error updating actividad' });
-        } else {
-            res.json({ success: true });
+    console.log('Body recibido:', req.body);
+
+    db.query(
+        'UPDATE traveler.actividades SET id_destino = ?, id_tipo_actividad = ?, disponibilidad_actividad = ?, precio = ?, descripcion = ?, id_usuario_actividad = ? WHERE id_actividad = ?',
+        [id_destino, id_tipo_actividad, disponibilidad_actividad, precio, descripcion, id_usuario_actividad, id_actividad],
+        (err, result) => {
+            if (err) {
+                console.error('Error updating actividad:', err);
+                res.status(500).json({ error: 'Error updating actividad' });
+            } else {
+                res.json({ success: true });
+            }
         }
-    });
-
+    );
 });
+
 
 /**
  * @swagger
@@ -3699,8 +3722,8 @@ app.delete('/traveler/post_blog/:id', authenticateToken, (req, res) => {
 
 // Reservas Alojamientos
 app.post('/traveler/reservas_alojamientos', authenticateToken, (req, res) => {
-    const { id_alojamiento, fecha_reserva_alojamiento, id_usuario, nombre, apellidos, email, telefono, fecha_entrada_alojamiento, fecha_salida_alojamiento,hora_entrada_alojamiento,
-  hora_salida_alojamiento, } = req.body;
+    const { id_alojamiento, fecha_reserva_alojamiento, id_usuario, nombre, apellidos, email, telefono, fecha_entrada_alojamiento, fecha_salida_alojamiento, hora_entrada_alojamiento,
+        hora_salida_alojamiento, } = req.body;
     db.query('INSERT INTO traveler.reservas_alojamientos (id_alojamiento, fecha_reserva_alojamiento, id_usuario, nombre, apellidos, email, telefono, fecha_entrada_alojamiento, fecha_salida_alojamiento, hora_entrada_alojamiento, hora_salida_alojamiento) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [id_alojamiento, fecha_reserva_alojamiento, id_usuario, nombre, apellidos, email, telefono, fecha_entrada_alojamiento, fecha_salida_alojamiento, hora_entrada_alojamiento, hora_salida_alojamiento], (err, result) => {
         if (err) {
             console.error('Error creating reserva:', err);
@@ -4297,8 +4320,8 @@ app.get('/traveler/reservas_vehiculos/:id', authenticateToken, (req, res) => {
  *         description: Error al crear la reserva de vehículo
  */
 app.post('/traveler/reservas_vehiculos', authenticateToken, (req, res) => {
-    const { id_usuario, fecha_reserva_vehiculo } = req.body;
-    db.query('INSERT INTO traveler.reservas_vehiculos (id_usuario, fecha_reserva_vehiculo) VALUES (?, ?)', [id_usuario, fecha_reserva_vehiculo], (err, result) => {
+    const { id_usuario, id_vehiculo, nombre, apellidos, telefono, email, fecha_inicio_reserva, hora_inicio_reserva, fecha_final_reserva, hora_final_reserva, nombre_vehiculo } = req.body;
+    db.query('INSERT INTO traveler.reservas_vehiculos (id_usuario, id_vehiculo, nombre, apellidos, telefono, email, fecha_inicio_reserva, hora_inicio_reserva, fecha_final_reserva, hora_final_reserva, nombre_vehiculo) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [id_usuario, id_vehiculo, nombre, apellidos, telefono, email, fecha_inicio_reserva, hora_inicio_reserva, fecha_final_reserva, hora_final_reserva, nombre_vehiculo], (err, result) => {
         if (err) {
             console.error('Error creating reserva_vehiculo:', err);
             res.status(500).json({ error: 'Error creating reserva_vehiculo' });
@@ -4530,16 +4553,87 @@ app.get('/traveler/reservas_vuelos/:id', authenticateToken, (req, res) => {
  *       500:
  *         description: Error al crear la reserva de vuelo
  */
+// Crear una nueva reserva de vuelo
+/**
+ * @swagger
+ * /traveler/reservas_vuelos:
+ *   post:
+ *     summary: Crear una nueva reserva de vuelo
+ *     tags: [Reservas Vuelos]
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - id_vuelo
+ *               - id_usuario
+ *               - fecha_reserva_vuelo
+ *               - nombre
+ *               - apellido
+ *               - telefono
+ *               - email
+ *               - hora_salida_vuelo
+ *               - fecha_salida_vuelo
+ *               - ciudad_salida_vuelo
+ *               - ciudad_llegada_vuelo
+ *             properties:
+ *               id_vuelo:
+ *                 type: integer
+ *               id_usuario:
+ *                 type: integer
+ *               fecha_reserva_vuelo:
+ *                 type: string
+ *               nombre:
+ *                 type: string
+ *               apellido:
+ *                 type: string
+ *               telefono:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *               hora_salida_vuelo:
+ *                 type: string
+ *               fecha_salida_vuelo:
+ *                 type: string
+ *               ciudad_salida_vuelo:
+ *                 type: string
+ *               ciudad_llegada_vuelo:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Reserva de vuelo creada correctamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: integer
+ *       500:
+ *         description: Error al crear la reserva de vuelo
+ */
 app.post('/traveler/reservas_vuelos', authenticateToken, (req, res) => {
-    const { id_usuario, id_vuelo, fecha_reserva_vuelo } = req.body;
-    db.query('INSERT INTO traveler.reservas_vuelos (id_usuario, id_vuelo, fecha_reserva_vuelo) VALUES (?, ?, ?)', [id_usuario, id_vuelo, fecha_reserva_vuelo], (err, result) => {
-        if (err) {
-            console.error('Error creating reserva_vuelo:', err);
-            res.status(500).json({ error: 'Error creating reserva_vuelo' });
-        } else {
-            res.json({ id: result.insertId });
+    const { id_vuelo, id_usuario, nombre, apellido, telefono, email, hora_salida_vuelo, fecha_salida_vuelo, ciudad_salida_vuelo, ciudad_llegada_vuelo } = req.body;
+
+    // Convertir fecha_salida_vuelo al formato 'YYYY-MM-DD'
+    const formattedFechaSalidaVuelo = new Date(fecha_salida_vuelo).toISOString().split('T')[0];
+
+    db.query(
+        'INSERT INTO traveler.reservas_vuelos (id_vuelo, id_usuario, nombre, apellido, telefono, email, hora_salida_vuelo, fecha_salida_vuelo, ciudad_salida_vuelo, ciudad_llegada_vuelo) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [id_vuelo, id_usuario, nombre, apellido, telefono, email, hora_salida_vuelo, formattedFechaSalidaVuelo, ciudad_salida_vuelo, ciudad_llegada_vuelo],
+        (err, result) => {
+            if (err) {
+                console.error('Error creating reserva_vuelo:', err);
+                res.status(500).json({ error: 'Error creating reserva_vuelo' });
+            } else {
+                res.status(201).json({ id: result.insertId });
+            }
         }
-    });
+    );
 });
 
 /**
@@ -5016,7 +5110,7 @@ app.post('/traveler/imagenes_usuarios', authenticateToken, (req, res) => {
 app.put('/traveler/imagenes_usuarios/:id', authenticateToken, (req, res) => {
     const id = req.params.id;
     const { id_usuario, nombre_imagen_usuario } = req.body;
-    db.query('UPDATE traveler.imagenes_usuarios SET nombre_imagen_usuario = ? WHERE id_imagen_usuario = ?', [ nombre_imagen_usuario, id_usuario], (err, result) => {
+    db.query('UPDATE traveler.imagenes_usuarios SET nombre_imagen_usuario = ? WHERE id_imagen_usuario = ?', [nombre_imagen_usuario, id_usuario], (err, result) => {
         if (err) {
             console.error('Error updating imagen_usuarios:', err);
             res.status(500).json({ error: 'Error updating imagen_usuarios' });
@@ -5093,7 +5187,7 @@ app.get('/traveler/reservas_vehiculos/usuario/:id_usuario', authenticateToken, (
                 console.error('Error fetching reservas_vehiculos:', err);
                 res.status(500).json({ error: 'Error al obtener reservas de vehículos' });
             } else {
-                res.json(results); 
+                res.json(results);
             }
         }
     );
@@ -5110,7 +5204,7 @@ app.get('/traveler/reservas_vuelos/usuario/:id_usuario', authenticateToken, (req
                 console.error('Error fetching reservas_vuelos:', err);
                 res.status(500).json({ error: 'Error al obtener reservas de vuelos' });
             } else {
-                res.json(results); 
+                res.json(results);
             }
         }
     );
@@ -5365,6 +5459,8 @@ app.delete('/traveler/reservas_vehiculos/:id', authenticateToken, (req, res) => 
         }
     });
 });
+
+
 
 
 
